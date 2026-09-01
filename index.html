@@ -290,7 +290,11 @@ function render(){
     focusSel = active.dataset?.p!=null
       ? `[data-p="${active.dataset.p}"][data-i="${CSS.escape(active.dataset.i)}"][data-k="${active.dataset.k}"]`
       : `#${active.id}`;
+    // number inputs don't support the selection API — read via a text swap
+    const wasNumber=active.type==='number';
+    if(wasNumber) active.type='text';
     try{ selStart=active.selectionStart; selEnd=active.selectionEnd; }catch(e){}
+    if(wasNumber) active.type='number';
   }
 
   const R=project(), s=D.settings;
@@ -310,8 +314,9 @@ function render(){
   const posExtent=Math.max(rawPeak,0), negExtent=Math.max(-Math.min(low.bal,0),0);
   const total=Math.max(1,posExtent+negExtent);
   const zeroPct=negExtent/total*100;
+  const stripH=$('#strip').clientHeight||96, minPct=Math.min(100,16/stripH*100);
   $('#strip').innerHTML = `<div class="zeroline" style="bottom:${zeroPct}%"></div>` + R.map(r=>{
-    const mag=Math.max(2,Math.abs(r.bal)/total*100);
+    const mag=Math.max(minPct,Math.abs(r.bal)/total*100);
     const c=r.bal<0?'d':r.bal<peak*0.15?'w':'';
     const bottom=r.bal>=0 ? zeroPct : Math.max(0,zeroPct-mag);
     return `<div class="cell"><div class="bar ${c}" style="bottom:${bottom}%;height:${mag}%" title="${r.label}: ${rs(r.bal)}"></div></div>`;
@@ -417,7 +422,12 @@ function render(){
     const el=$(focusSel);
     if(el){
       el.focus();
-      if(selStart!=null){ try{ el.setSelectionRange(selStart,selEnd); }catch(e){} }
+      if(selStart!=null){
+        const wasNumber=el.type==='number';
+        if(wasNumber) el.type='text';
+        try{ el.setSelectionRange(selStart,selEnd); }catch(e){}
+        if(wasNumber) el.type='number';
+      }
     }
   }
 
