@@ -280,23 +280,16 @@ function project(){
   return rows;
 }
 
-/* ── render ── */
-function render(){
-  // rebuilding table markup below destroys and recreates every input; save
-  // focus + cursor position so an in-progress keystroke doesn't get kicked out
-  const active=document.activeElement;
-  let focusSel=null, selStart=null, selEnd=null;
-  if(active && (active.dataset?.p!=null || active.id?.startsWith('s_'))){
-    focusSel = active.dataset?.p!=null
-      ? `[data-p="${active.dataset.p}"][data-i="${CSS.escape(active.dataset.i)}"][data-k="${active.dataset.k}"]`
-      : `#${active.id}`;
-    // number inputs don't support the selection API — read via a text swap
-    const wasNumber=active.type==='number';
-    if(wasNumber) active.type='text';
-    try{ selStart=active.selectionStart; selEnd=active.selectionEnd; }catch(e){}
-    if(wasNumber) active.type='number';
-  }
-
+/* ── render ──
+   renderLive() updates only numbers derived from D — hero, chart, stats,
+   projection, settings values. It never touches the debts/house/log table
+   markup, so it's safe to call on every keystroke: the input the user is
+   typing in is never destroyed, and the browser keeps the cursor exactly
+   where it was with no extra bookkeeping needed.
+   render() calls renderLive() and then rebuilds the tables themselves —
+   only needed for structural changes (add/remove a row, tick a checkbox,
+   import, sign-in). */
+function renderLive(){
   const R=project(), s=D.settings;
   const dead=R.find(r=>r.bal<0);
   const peak=Math.max(...R.map(r=>r.bal),1);
@@ -315,8 +308,13 @@ function render(){
   const total=Math.max(1,posExtent+negExtent);
   const zeroPct=negExtent/total*100;
   const stripH=$('#strip').clientHeight||96, minPct=Math.min(100,16/stripH*100);
+  const posCeil=100-zeroPct, negCeil=zeroPct;
+  // guarantee a minimum visible height without flattening every small value to
+  // the same size: stretch [0,ceil] to [minPct,ceil] instead of clamping
+  const scaleFloor=(v,ceil)=> ceil<=minPct ? ceil : minPct+(ceil-minPct)*(v/ceil);
   $('#strip').innerHTML = `<div class="zeroline" style="bottom:${zeroPct}%"></div>` + R.map(r=>{
-    const mag=Math.max(minPct,Math.abs(r.bal)/total*100);
+    const raw=Math.abs(r.bal)/total*100;
+    const mag=scaleFloor(raw, r.bal>=0?posCeil:negCeil);
     const c=r.bal<0?'d':r.bal<peak*0.15?'w':'';
     const bottom=r.bal>=0 ? zeroPct : Math.max(0,zeroPct-mag);
     return `<div class="cell"><div class="bar ${c}" style="bottom:${bottom}%;height:${mag}%" title="${r.label}: ${rs(r.bal)}"></div></div>`;
@@ -333,6 +331,27 @@ function render(){
     ['Total owed', rs(D.debts.filter(d=>!d.x).reduce((a,d)=>a+ +d.out,0)), ''],
     ['Interest saved', rs(cleared.reduce((a,d)=>a+saved(d),0)), cleared.length?'pos':'']
   ].map(([l,v,c])=>`<div class="stat"><b class="${c}">${v}</b><i>${l}</i></div>`).join('');
+
+  // projection
+  let p=`<thead><tr><th>Month</th><th class="r">EMIs</th><th class="r">Fixed</th><th class="r">Variable</th>
+    <th class="r">Outgo</th><th class="r">Income</th><th class="r">Net</th><th class="r">Reserve</th></tr></thead><tbody>`;
+  R.forEach(r=>{
+    p+=`<tr><td>${r.label}${r.isActual?' <span class="tag">actual</span>':''}</td>
+      <td class="r">${rs(r.emi)}</td><td class="r">${rs(r.fixed)}</td>
+      <td class="r">${rs(r.varUsed+r.one)}</td><td class="r">${rs(r.out)}</td>
+      <td class="r">${rs(r.inc)}</td><td class="r ${r.net<0?'neg':'pos'}">${rs(r.net)}</td>
+      <td class="r ${r.bal<0?'neg':''}"><b>${rs(r.bal)}</b></td></tr>`;
+  });
+  $('#proj').innerHTML=p+'</tbody>';
+
+  $('#s_res').value=s.reserve; $('#s_sal').value=s.salary;
+  $('#s_sp').value=s.spouse;   $('#s_st').value=s.start; $('#s_hz').value=s.horizon;
+
+  return R;
+}
+
+function render(){
+  const R=renderLive();
 
   // debts
   let t=`<thead><tr><th>Debt</th><th>Name</th><th class="r">EMI</th><th class="r">Owed</th>
@@ -356,7 +375,7 @@ function render(){
       <td><input data-p="debts" data-i="${i}" data-k="x" type="checkbox" ${d.x?'checked':''}></td>
       <td><button class="q" data-del="debts" data-i="${i}" aria-label="Remove">✕</button></td></tr>`;
   });
-  const live=D.debts.filter(d=>!d.x);
+  const live=D.debts.filter(d=>!d.x), cleared=D.debts.filter(d=>d.x);
   t+=`</tbody><tfoot><tr><td colspan="2">${live.length} active</td>
     <td class="r">${rs(live.reduce((a,d)=>a+ +d.emi,0))}</td>
     <td class="r">${rs(live.reduce((a,d)=>a+ +d.out,0))}</td>
@@ -403,34 +422,6 @@ function render(){
   const sel=$('#logmonth');
   sel.innerHTML=R.map(r=>`<option value="${r.key}">${r.label}</option>`).join('');
 
-  // projection
-  let p=`<thead><tr><th>Month</th><th class="r">EMIs</th><th class="r">Fixed</th><th class="r">Variable</th>
-    <th class="r">Outgo</th><th class="r">Income</th><th class="r">Net</th><th class="r">Reserve</th></tr></thead><tbody>`;
-  R.forEach(r=>{
-    p+=`<tr><td>${r.label}${r.isActual?' <span class="tag">actual</span>':''}</td>
-      <td class="r">${rs(r.emi)}</td><td class="r">${rs(r.fixed)}</td>
-      <td class="r">${rs(r.varUsed+r.one)}</td><td class="r">${rs(r.out)}</td>
-      <td class="r">${rs(r.inc)}</td><td class="r ${r.net<0?'neg':'pos'}">${rs(r.net)}</td>
-      <td class="r ${r.bal<0?'neg':''}"><b>${rs(r.bal)}</b></td></tr>`;
-  });
-  $('#proj').innerHTML=p+'</tbody>';
-
-  $('#s_res').value=s.reserve; $('#s_sal').value=s.salary;
-  $('#s_sp').value=s.spouse;   $('#s_st').value=s.start; $('#s_hz').value=s.horizon;
-
-  if(focusSel){
-    const el=$(focusSel);
-    if(el){
-      el.focus();
-      if(selStart!=null){
-        const wasNumber=el.type==='number';
-        if(wasNumber) el.type='text';
-        try{ el.setSelectionRange(selStart,selEnd); }catch(e){}
-        if(wasNumber) el.type='number';
-      }
-    }
-  }
-
   renderMembers();
 }
 
@@ -462,14 +453,22 @@ document.addEventListener('input',e=>{
               : (el.type==='number' ? (el.value===''?'':+el.value) : el.value);
     if(p==='log'){ D.log[i]=D.log[i]||{}; D.log[i][k]=val; }
     else D[p][+i][k]=val;
-    if(p!=='log' || k==='note'){ render(); } else { render(); }
+    // checkbox toggles need the row markup rebuilt (strikethrough etc.) —
+    // otherwise stay on renderLive() so the field being typed in is never
+    // torn down and the cursor stays put
+    if(el.type==='checkbox') render(); else renderLive();
     save();
   }
   if(el.id?.startsWith('s_')){
     const map={s_res:'reserve',s_sal:'salary',s_sp:'spouse',s_st:'start',s_hz:'horizon'};
     D.settings[map[el.id]] = el.type==='number' ? +el.value : el.value;
-    render(); save();
+    renderLive(); save();
   }
+});
+document.addEventListener('focusout',e=>{
+  // resync table footers / computed cells (payoff, net saved, totals) once
+  // the user leaves a field — renderLive() alone doesn't touch those
+  if(e.target.dataset?.p!=null) render();
 });
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-del]');
