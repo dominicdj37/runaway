@@ -334,19 +334,30 @@ function renderLive(){
     : `Lowest point is ${rs(low.bal)} in ${low.label}, over ${R.length} months.`;
 
   // bars grow from a zero line: positive months up, negative months down.
-  // The larger of (highest positive, lowest negative) reaches maxPx; every
-  // other bar is scaled proportionally against it, with a 16px floor that
-  // stretches rather than clamps so small values stay distinguishable.
+  // Each side that actually has months gets at least minPx of room (so a
+  // small dip against a much larger peak, or vice versa, still reads as a
+  // real bar instead of a hairline); remaining height splits proportionally
+  // to how big each side's swing actually is.
   const stripH=$('#strip').clientHeight||96;
   const minPx=16, maxPx=Math.max(minPx+8,stripH-6);
   const hi=Math.max(...R.map(r=>r.bal));
   const posExtent=Math.max(hi,0), negExtent=Math.max(-Math.min(low.bal,0),0);
-  const scale=maxPx/Math.max(posExtent,negExtent,1);
-  const posPx=posExtent*scale, negPx=negExtent*scale;
+  let posPx=0, negPx=0;
+  if(negExtent<=0){ posPx=maxPx; }
+  else if(posExtent<=0){ negPx=maxPx; }
+  else{
+    // guarantee each side its 16px floor first, then split what's left
+    // proportionally — flooring after the split (instead of before) let a
+    // small side get shrunk back under the floor when the two competed for
+    // the same maxPx budget
+    const remaining=Math.max(0,maxPx-2*minPx), t=posExtent+negExtent;
+    posPx=minPx+remaining*posExtent/t;
+    negPx=minPx+remaining*negExtent/t;
+  }
   const scaleFloor=(v,ceil)=> ceil<=minPx ? ceil : minPx+(ceil-minPx)*(v/ceil);
   $('#strip').innerHTML = `<div class="zeroline" style="bottom:${negPx}px"></div>` + R.map(r=>{
-    const ceil=r.bal>=0?posPx:negPx;
-    const mag=scaleFloor(Math.abs(r.bal)*scale, ceil);
+    const ceil=r.bal>=0?posPx:negPx, extent=(r.bal>=0?posExtent:negExtent)||1;
+    const mag=scaleFloor(Math.abs(r.bal)/extent*ceil, ceil);
     const c=r.bal<0?'d':r.bal<peak*0.15?'w':'';
     const bottom=r.bal>=0 ? negPx : Math.max(0,negPx-mag);
     return `<div class="cell"><div class="bar ${c}" style="bottom:${bottom}px;height:${mag}px" title="${r.label}: ${rs(r.bal)}"></div></div>`;
