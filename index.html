@@ -43,10 +43,12 @@ header{display:flex;align-items:center;justify-content:space-between;gap:16px;pa
 .vsub{color:var(--dim);margin-top:8px;font-size:14.5px;max-width:64ch}
 
 /* runway strip */
-.strip{display:flex;gap:2px;margin:26px 0 8px;height:96px;align-items:flex-end}
-.cell{flex:1;min-width:0;border-radius:2px 2px 0 0;background:var(--safe);position:relative;transition:height .25s}
-.cell.w{background:var(--warn)} .cell.d{background:var(--danger)}
-.cell:hover{outline:1px solid var(--text);outline-offset:1px}
+.strip{display:flex;gap:2px;margin:26px 0 8px;height:96px;position:relative}
+.cell{flex:1;min-width:0;position:relative;height:100%}
+.bar{position:absolute;left:0;right:0;border-radius:2px;background:var(--safe);transition:height .25s,bottom .25s}
+.bar.w{background:var(--warn)} .bar.d{background:var(--danger)}
+.cell:hover .bar{outline:1px solid var(--text);outline-offset:1px}
+.zeroline{position:absolute;left:0;right:0;height:1px;background:var(--faint);opacity:.5;pointer-events:none}
 .axis{display:flex;justify-content:space-between;color:var(--faint);font-size:11.5px}
 
 /* stats */
@@ -304,11 +306,15 @@ function render(){
     ? `That is ${dead.i} months from ${R[0].label}. Lowest point ${rs(low.bal)} in ${low.label}.`
     : `Lowest point is ${rs(low.bal)} in ${low.label}, over ${R.length} months.`;
 
-  const floor=Math.min(0,low.bal), range=Math.max(1,peak-floor);
-  $('#strip').innerHTML = R.map(r=>{
-    const h=Math.max(2,Math.min(100,(r.bal-floor)/range*100));
+  const rawPeak=Math.max(...R.map(r=>r.bal));
+  const posExtent=Math.max(rawPeak,0), negExtent=Math.max(-Math.min(low.bal,0),0);
+  const total=Math.max(1,posExtent+negExtent);
+  const zeroPct=negExtent/total*100;
+  $('#strip').innerHTML = `<div class="zeroline" style="bottom:${zeroPct}%"></div>` + R.map(r=>{
+    const mag=Math.max(2,Math.abs(r.bal)/total*100);
     const c=r.bal<0?'d':r.bal<peak*0.15?'w':'';
-    return `<div class="cell ${c}" style="height:${h}%" title="${r.label}: ${rs(r.bal)}"></div>`;
+    const bottom=r.bal>=0 ? zeroPct : Math.max(0,zeroPct-mag);
+    return `<div class="cell"><div class="bar ${c}" style="bottom:${bottom}%;height:${mag}%" title="${r.label}: ${rs(r.bal)}"></div></div>`;
   }).join('');
   $('#ax0').textContent=R[0].label; $('#ax1').textContent=R[R.length-1].label;
 
