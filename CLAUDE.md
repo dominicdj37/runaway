@@ -72,9 +72,23 @@ emi     = Σ debts where !foreclosed && i < months
 fixed   = Σ commitments where !variable && i < months
 varUsed = log[month].actual  ??  Σ commitments where variable && i < months
 outgo   = emi + fixed + varUsed + oneoff
-balance += (salary + spouse + extraIncome) − outgo
+cashIn  = Σ cash where (type=='oneoff' && i==monthIndex(from))
+              || (type=='recurring' && i >= monthIndex(from))
+balance += (salary + cashIn + extraIncome) − outgo
 if log[month].checkpoint is set: balance = checkpoint   // re-anchor
 ```
+
+`settings.salary` (labelled "Salary 1" in the UI) is the one fixed recurring
+income. Everything else — a second salary, a spouse's income, a one-time
+top-up — lives in `cash[]`, each entry `{n, amt, type, from}`: `type` is
+`'recurring'` (counts every month from `from` onward, no end date) or
+`'oneoff'` (counts exactly once, in the month named by `from`).
+`monthIndex(from)` converts that `YYYY-MM` string to a horizon-relative index
+the same way `mKey`/`mLabel` go the other direction. A `spouse` field used to
+live directly on `settings`; `migrateSpouseIncome()` carries any real figure
+found there into a `cash` row (tagged `migratedSpouse: true`) the first time
+older data loads, so a schema change never silently drops real income — see
+the hard constraint above about money being arithmetic, not vibes.
 
 Opening balance is `settings.reserve` minus the payoff of every debt marked
 cleared. `payoff = outstanding × (1 + fee% × 1.18)` — the 1.18 is 18% GST on the

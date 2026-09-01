@@ -43,10 +43,12 @@ header{display:flex;align-items:center;justify-content:space-between;gap:16px;pa
 .vsub{color:var(--dim);margin-top:8px;font-size:14.5px;max-width:64ch}
 
 /* runway strip */
-.strip{display:flex;gap:2px;margin:26px 0 8px;height:96px;align-items:flex-end}
-.cell{flex:1;min-width:0;border-radius:2px 2px 0 0;background:var(--safe);transition:height .25s}
-.cell.w{background:var(--warn)} .cell.d{background:var(--danger)}
-.cell:hover{outline:1px solid var(--text);outline-offset:1px}
+.strip{display:flex;gap:2px;margin:26px 0 8px;height:96px;position:relative}
+.cell{flex:1;min-width:0;position:relative;height:100%}
+.bar{position:absolute;left:0;right:0;border-radius:2px;background:var(--safe);transition:height .25s,bottom .25s}
+.bar.w{background:var(--warn)} .bar.d{background:var(--danger)}
+.cell:hover .bar{outline:1px solid var(--text);outline-offset:1px}
+.zeroline{position:absolute;left:0;right:0;height:1px;background:var(--faint);opacity:.5;pointer-events:none}
 .axis{display:flex;justify-content:space-between;color:var(--faint);font-size:11.5px}
 
 /* stats */
@@ -139,6 +141,18 @@ button.q{background:none;border:none;color:var(--act);padding:4px 6px}
   </section>
 
   <section>
+    <h2>Cash in</h2>
+    <p class="sub">What comes in. Add a second salary, a spouse's income, or a one-time
+      top-up — each can start partway through the horizon instead of from month one.</p>
+    <div class="fields" style="margin-bottom:18px">
+      <div><label for="s_res">Reserve in hand</label><input id="s_res" type="number"></div>
+      <div><label for="s_sal">Salary 1</label><input id="s_sal" type="number"></div>
+    </div>
+    <div class="scroll"><table id="cash"></table></div>
+    <div class="row"><button id="addcash">Add cash</button></div>
+  </section>
+
+  <section>
     <h2>Debts</h2>
     <p class="sub">Tick <b>Clear</b> to model foreclosing a debt: its EMIs stop and the payoff comes off your reserve. Net saved is the interest you avoid minus the foreclosure charge.</p>
     <div class="scroll"><table id="debts"></table></div>
@@ -171,9 +185,6 @@ button.q{background:none;border:none;color:var(--act);padding:4px 6px}
   <section>
     <h2>Settings</h2>
     <div class="fields">
-      <div><label for="s_res">Reserve in hand</label><input id="s_res" type="number"></div>
-      <div><label for="s_sal">Monthly salary</label><input id="s_sal" type="number"></div>
-      <div><label for="s_sp">Spouse income</label><input id="s_sp" type="number"></div>
       <div><label for="s_st">Starting month</label><input id="s_st" type="month"></div>
       <div><label for="s_hz">Months to project</label><input id="s_hz" type="number" min="12" max="120"></div>
     </div>
@@ -230,9 +241,20 @@ if(CONFIGURED){
    Your figures live in seed.json (git-ignored) and in Firestore behind your
    auth rules. Settings → Import to load them the first time. */
 const EMPTY = () => ({
-  settings:{ reserve:0, salary:0, spouse:0, start:'2026-09', horizon:60 },
-  debts:[], house:[], log:{}
+  settings:{ reserve:0, salary:0, start:'2026-09', horizon:60 },
+  debts:[], house:[], cash:[], log:{}
 });
+
+// "Spouse income" used to be a fixed settings field; it's now a cash-in row
+// so it can carry its own starting month. Carry any real figure forward
+// once so a schema change never silently drops real income from the
+// projection — see CLAUDE.md, "Money is arithmetic, not vibes."
+function migrateSpouseIncome(rawSettings){
+  const sp=+((rawSettings||{}).spouse)||0;
+  if(sp && !D.cash.some(c=>c.migratedSpouse)){
+    D.cash.push({n:'Spouse income',amt:sp,type:'recurring',from:D.settings.start,migratedSpouse:true});
+  }
+}
 
 let D = EMPTY(), uid=null, myEmail=null, accountId=null, offline=false, timer=null;
 let ACC = { owner:null, members:[], memberInfo:[], invitedEmails:[] };
@@ -253,6 +275,11 @@ function mKey(start,i){
   const d=new Date(y,m-1+i,1);
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
 }
+function monthIndex(start,key){
+  const [ys,ms]=start.split('-').map(Number);
+  const [yk,mk]=String(key||start).split('-').map(Number);
+  return (yk-ys)*12+(mk-ms);
+}
 const payoff = d => d.out*(1+(d.fc||0)/100*1.18);
 const saved  = d => (d.emi*d.m - d.out) - (payoff(d)-d.out);
 
@@ -269,7 +296,12 @@ function project(){
     const varUsed = (lg.actual===''||lg.actual==null) ? varBudget : +lg.actual;
     const one = +lg.oneoff||0;
     const out = emi+fixed+varUsed+one;
-    const inc = (+s.salary||0)+(+s.spouse||0)+(+lg.extraIncome||0);
+    const cashIn = D.cash.reduce((a,c)=>{
+      const idx=monthIndex(s.start,c.from);
+      if(c.type==='oneoff') return a+(i===idx ? +c.amt:0);
+      return a+(i>=idx ? +c.amt:0);
+    },0);
+    const inc = (+s.salary||0)+cashIn+(+lg.extraIncome||0);
     bal += inc-out;
     if(lg.checkpoint!=='' && lg.checkpoint!=null) bal=+lg.checkpoint;
     rows.push({i,key,label:mLabel(s.start,i),emi,fixed,varUsed,one,out,inc,net:inc-out,bal,
@@ -301,15 +333,23 @@ function renderLive(){
     ? `That is ${dead.i} months from ${R[0].label}. Lowest point ${rs(low.bal)} in ${low.label}.`
     : `Lowest point is ${rs(low.bal)} in ${low.label}, over ${R.length} months.`;
 
-  // lowest month = 16px, highest = near the top of the strip, every month
-  // in between scaled linearly across that pixel range
+  // bars grow from a zero line: positive months up, negative months down.
+  // The larger of (highest positive, lowest negative) reaches maxPx; every
+  // other bar is scaled proportionally against it, with a 16px floor that
+  // stretches rather than clamps so small values stay distinguishable.
   const stripH=$('#strip').clientHeight||96;
   const minPx=16, maxPx=Math.max(minPx+8,stripH-6);
-  const hi=Math.max(...R.map(r=>r.bal)), lo=low.bal, spread=Math.max(1,hi-lo);
-  $('#strip').innerHTML = R.map(r=>{
-    const px=minPx+(maxPx-minPx)*((r.bal-lo)/spread);
+  const hi=Math.max(...R.map(r=>r.bal));
+  const posExtent=Math.max(hi,0), negExtent=Math.max(-Math.min(low.bal,0),0);
+  const scale=maxPx/Math.max(posExtent,negExtent,1);
+  const posPx=posExtent*scale, negPx=negExtent*scale;
+  const scaleFloor=(v,ceil)=> ceil<=minPx ? ceil : minPx+(ceil-minPx)*(v/ceil);
+  $('#strip').innerHTML = `<div class="zeroline" style="bottom:${negPx}px"></div>` + R.map(r=>{
+    const ceil=r.bal>=0?posPx:negPx;
+    const mag=scaleFloor(Math.abs(r.bal)*scale, ceil);
     const c=r.bal<0?'d':r.bal<peak*0.15?'w':'';
-    return `<div class="cell ${c}" style="height:${px}px" title="${r.label}: ${rs(r.bal)}"></div>`;
+    const bottom=r.bal>=0 ? negPx : Math.max(0,negPx-mag);
+    return `<div class="cell"><div class="bar ${c}" style="bottom:${bottom}px;height:${mag}px" title="${r.label}: ${rs(r.bal)}"></div></div>`;
   }).join('');
   $('#ax0').textContent=R[0].label; $('#ax1').textContent=R[R.length-1].label;
 
@@ -337,13 +377,32 @@ function renderLive(){
   $('#proj').innerHTML=p+'</tbody>';
 
   $('#s_res').value=s.reserve; $('#s_sal').value=s.salary;
-  $('#s_sp').value=s.spouse;   $('#s_st').value=s.start; $('#s_hz').value=s.horizon;
+  $('#s_st').value=s.start;    $('#s_hz').value=s.horizon;
 
   return R;
 }
 
 function render(){
   const R=renderLive();
+
+  // cash in
+  let ci=`<thead><tr><th>Source</th><th class="r">Amount</th><th>Type</th><th>Starts</th><th></th></tr></thead><tbody>`;
+  if(!D.cash.length){
+    ci+=`<tr><td colspan="5" style="color:var(--faint);padding:16px 11px">
+      Just Salary 1 above. Add another income or a one-time top-up here.</td></tr>`;
+  }
+  D.cash.forEach((c,i)=>{
+    ci+=`<tr>
+      <td><input data-p="cash" data-i="${i}" data-k="n" value="${esc(c.n)}" style="width:170px"></td>
+      <td class="r"><input data-p="cash" data-i="${i}" data-k="amt" type="number" value="${c.amt}" style="width:100px"></td>
+      <td><select data-p="cash" data-i="${i}" data-k="type">
+        <option value="recurring" ${c.type!=='oneoff'?'selected':''}>Recurring</option>
+        <option value="oneoff" ${c.type==='oneoff'?'selected':''}>One-time</option>
+      </select></td>
+      <td><input data-p="cash" data-i="${i}" data-k="from" type="month" value="${c.from||D.settings.start}" style="width:140px"></td>
+      <td><button class="q" data-del="cash" data-i="${i}" aria-label="Remove">✕</button></td></tr>`;
+  });
+  $('#cash').innerHTML=ci+'</tbody>';
 
   // debts
   let t=`<thead><tr><th>Debt</th><th>Name</th><th class="r">EMI</th><th class="r">Owed</th>
@@ -452,7 +511,7 @@ document.addEventListener('input',e=>{
     save();
   }
   if(el.id?.startsWith('s_')){
-    const map={s_res:'reserve',s_sal:'salary',s_sp:'spouse',s_st:'start',s_hz:'horizon'};
+    const map={s_res:'reserve',s_sal:'salary',s_st:'start',s_hz:'horizon'};
     D.settings[map[el.id]] = el.type==='number' ? +el.value : el.value;
     renderLive(); save();
   }
@@ -473,10 +532,11 @@ document.addEventListener('click',e=>{
   const c=e.target.closest('[data-cancelinvite]');
   if(c){ cancelInvite(c.dataset.cancelinvite); }
 });
+$('#addcash').onclick=()=>{ D.cash.push({n:'New income',amt:0,type:'recurring',from:D.settings.start}); render(); save(); };
 $('#adddebt').onclick=()=>{ D.debts.push({n:'New debt',who:'Daniel',emi:0,out:0,m:12,rate:null,fc:3,x:false,note:''}); render(); save(); };
 $('#addhouse').onclick=()=>{ D.house.push({n:'New commitment',amt:0,m:60,v:false,note:''}); render(); save(); };
 $('#addlog').onclick=()=>{ const k=$('#logmonth').value; D.log[k]=D.log[k]||{actual:'',oneoff:'',extraIncome:'',checkpoint:'',note:''}; render(); save(); };
-$('#wipe').onclick=()=>{ if(confirm('Clear all debts, commitments and logs?')){ D=EMPTY(); render(); save(); } };
+$('#wipe').onclick=()=>{ if(confirm('Clear all cash sources, debts, commitments and logs?')){ D=EMPTY(); render(); save(); } };
 $('#import').onclick=()=>$('#file').click();
 $('#file').onchange=e=>{
   const f=e.target.files[0]; if(!f) return;
@@ -488,7 +548,9 @@ $('#file').onchange=e=>{
       D={ settings:{...EMPTY().settings,...(v.settings||{})},
           debts:Array.isArray(v.debts)?v.debts:[],
           house:Array.isArray(v.house)?v.house:[],
+          cash:Array.isArray(v.cash)?v.cash:[],
           log:(v.log&&typeof v.log==='object')?v.log:{} };
+      migrateSpouseIncome(v.settings);
       render(); save(); flash('Imported');
     }catch(err){ alert('Could not read that file: '+err.message); }
   };
@@ -509,7 +571,7 @@ function save(){
   if(offline||!uid||!accountId) return;
   clearTimeout(timer);
   timer=setTimeout(async()=>{
-    try{ await updateDoc(doc(db,'accounts',accountId),{settings:D.settings,debts:D.debts,house:D.house,log:D.log,updated:Date.now()}); flash('Saved'); }
+    try{ await updateDoc(doc(db,'accounts',accountId),{settings:D.settings,debts:D.debts,house:D.house,cash:D.cash,log:D.log,updated:Date.now()}); flash('Saved'); }
     catch(err){ flash('Not saved — check Firestore rules'); console.error(err); }
   },700);
 }
@@ -519,7 +581,9 @@ async function load(){
     if(snap.exists()){
       const v=snap.data();
       D={settings:{...EMPTY().settings,...(v.settings||{})},
-         debts:v.debts||EMPTY().debts, house:v.house||EMPTY().house, log:v.log||{}};
+         debts:v.debts||EMPTY().debts, house:v.house||EMPTY().house,
+         cash:v.cash||EMPTY().cash, log:v.log||{}};
+      migrateSpouseIncome(v.settings);
       ACC={owner:v.owner, members:v.members||[], memberInfo:v.memberInfo||[], invitedEmails:v.invitedEmails||[]};
     }
   }catch(err){ console.error(err); flash('Could not load — check Firestore rules'); }
