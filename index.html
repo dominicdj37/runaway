@@ -43,7 +43,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:16px;pa
 .vsub{color:var(--dim);margin-top:8px;font-size:14.5px;max-width:64ch}
 
 /* runway strip */
-.strip{display:flex;gap:2px;margin:26px 0 8px;height:56px;align-items:flex-end}
+.strip{display:flex;gap:2px;margin:26px 0 8px;height:96px;align-items:flex-end}
 .cell{flex:1;min-width:0;border-radius:2px 2px 0 0;background:var(--safe);position:relative;transition:height .25s}
 .cell.w{background:var(--warn)} .cell.d{background:var(--danger)}
 .cell:hover{outline:1px solid var(--text);outline-offset:1px}
@@ -98,7 +98,7 @@ button.q{background:none;border:none;color:var(--act);padding:4px 6px}
 .saving.on{opacity:1}
 .hide{display:none!important}
 @media (max-width:640px){
-  body{padding:0 14px 60px} .strip{height:44px} section{padding:26px 0}
+  body{padding:0 14px 60px} .strip{height:72px} section{padding:26px 0}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -280,6 +280,17 @@ function project(){
 
 /* ── render ── */
 function render(){
+  // rebuilding table markup below destroys and recreates every input; save
+  // focus + cursor position so an in-progress keystroke doesn't get kicked out
+  const active=document.activeElement;
+  let focusSel=null, selStart=null, selEnd=null;
+  if(active && (active.dataset?.p!=null || active.id?.startsWith('s_'))){
+    focusSel = active.dataset?.p!=null
+      ? `[data-p="${active.dataset.p}"][data-i="${CSS.escape(active.dataset.i)}"][data-k="${active.dataset.k}"]`
+      : `#${active.id}`;
+    try{ selStart=active.selectionStart; selEnd=active.selectionEnd; }catch(e){}
+  }
+
   const R=project(), s=D.settings;
   const dead=R.find(r=>r.bal<0);
   const peak=Math.max(...R.map(r=>r.bal),1);
@@ -293,10 +304,11 @@ function render(){
     ? `That is ${dead.i} months from ${R[0].label}. Lowest point ${rs(low.bal)} in ${low.label}.`
     : `Lowest point is ${rs(low.bal)} in ${low.label}, over ${R.length} months.`;
 
+  const floor=Math.min(0,low.bal), range=Math.max(1,peak-floor);
   $('#strip').innerHTML = R.map(r=>{
-    const h=Math.max(2,Math.min(100,r.bal/peak*100));
+    const h=Math.max(2,Math.min(100,(r.bal-floor)/range*100));
     const c=r.bal<0?'d':r.bal<peak*0.15?'w':'';
-    return `<div class="cell ${c}" style="height:${r.bal<0?4:h}%" title="${r.label}: ${rs(r.bal)}"></div>`;
+    return `<div class="cell ${c}" style="height:${h}%" title="${r.label}: ${rs(r.bal)}"></div>`;
   }).join('');
   $('#ax0').textContent=R[0].label; $('#ax1').textContent=R[R.length-1].label;
 
@@ -394,6 +406,14 @@ function render(){
 
   $('#s_res').value=s.reserve; $('#s_sal').value=s.salary;
   $('#s_sp').value=s.spouse;   $('#s_st').value=s.start; $('#s_hz').value=s.horizon;
+
+  if(focusSel){
+    const el=$(focusSel);
+    if(el){
+      el.focus();
+      if(selStart!=null){ try{ el.setSelectionRange(selStart,selEnd); }catch(e){} }
+    }
+  }
 
   renderMembers();
 }
