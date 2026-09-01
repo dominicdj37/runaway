@@ -1,0 +1,73 @@
+rules_version = '2';
+// Firestore rules for Runway.
+// Console → Firestore Database → Rules → paste → Publish.
+// Without these, a public repo means a public database.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+
+    function isOwner(accountId) {
+      return signedIn() &&
+        get(/databases/$(database)/documents/accounts/$(accountId)).data.owner == request.auth.uid;
+    }
+
+    function isMember(accountId) {
+      return signedIn() &&
+        request.auth.uid in get(/databases/$(database)/documents/accounts/$(accountId)).data.members;
+    }
+
+    // Pointer doc: which account this signed-in user belongs to.
+    match /users/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    // The shared financial data. Every member can read and fully edit it.
+    match /accounts/{accountId} {
+      allow read, update: if isMember(accountId);
+
+      // Creating your own account for the first time.
+      allow create: if signedIn()
+        && accountId == request.auth.uid
+        && request.resource.data.owner == request.auth.uid
+        && request.resource.data.members == [request.auth.uid];
+
+      // Joining via an accepted invite: may only add yourself to
+      // members/memberInfo, nothing else on the document.
+      allow update: if signedIn()
+        && !(request.auth.uid in resource.data.members)
+        && request.auth.uid in request.resource.data.members
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members','memberInfo'])
+        && get(/databases/$(database)/documents/invites/$(request.auth.token.email.lower())).data.accountId == accountId
+        && get(/databases/$(database)/documents/invites/$(request.auth.token.email.lower())).data.status == 'accepted';
+    }
+
+    // One pending invite per email, keyed by the lowercased address so the
+    // invitee can look it up by a direct read before they exist anywhere
+    // else in the data — no query/list permission needed.
+    match /invites/{email} {
+      allow get: if signedIn() &&
+        (request.auth.token.email.lower() == email || isMember(resource.data.accountId));
+
+      // Only the account owner may invite.
+      allow create: if isOwner(request.resource.data.accountId)
+        && request.resource.data.invitedBy == request.auth.uid
+        && request.resource.data.email == email
+        && request.resource.data.status == 'pending';
+
+      // Invitee accepts or declines; nothing else about the invite may change.
+      allow update: if signedIn()
+        && request.auth.token.email.lower() == email
+        && resource.data.status == 'pending'
+        && request.resource.data.status in ['accepted','declined']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','acceptedAt']);
+
+      // Owner can cancel a pending invite.
+      allow delete: if isOwner(resource.data.accountId);
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

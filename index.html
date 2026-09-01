@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Runway</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --base:#0F1419; --surface:#171E26; --raised:#1E2733; --line:#2B3542;
+  --text:#E7ECF3; --dim:#94A1B2; --faint:#5E6B7B;
+  --safe:#4FB286; --warn:#E0A03C; --danger:#E0524D; --act:#7BA0DC;
+  --r:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--base); color:var(--text);
+  font-family:'Archivo',system-ui,sans-serif; font-size:15px; line-height:1.5;
+  font-variant-numeric:tabular-nums; padding:0 20px 80px;
+}
+.wrap{max-width:1080px;margin:0 auto}
+.num{font-variant-numeric:tabular-nums}
+h1,h2,h3{font-weight:600;letter-spacing:-.01em}
+h2{font-size:19px;margin-bottom:4px}
+.sub{color:var(--dim);font-size:13.5px;margin-bottom:16px;max-width:70ch}
+section{padding:34px 0;border-top:1px solid var(--line)}
+section:first-of-type{border-top:0}
+
+/* header */
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 0;flex-wrap:wrap}
+.brand{font-weight:700;font-size:17px;letter-spacing:-.02em}
+.brand span{color:var(--faint);font-weight:500}
+.who{color:var(--dim);font-size:13px;display:flex;align-items:center;gap:10px}
+
+/* hero */
+.hero{padding:30px 0 34px}
+.verdict{font-size:clamp(28px,5.4vw,46px);font-weight:700;letter-spacing:-.03em;line-height:1.1}
+.verdict em{font-style:normal;color:var(--danger)}
+.verdict.ok em{color:var(--safe)}
+.vsub{color:var(--dim);margin-top:8px;font-size:14.5px;max-width:64ch}
+
+/* runway strip */
+.strip{display:flex;gap:2px;margin:26px 0 8px;height:56px;align-items:flex-end}
+.cell{flex:1;min-width:0;border-radius:2px 2px 0 0;background:var(--safe);position:relative;transition:height .25s}
+.cell.w{background:var(--warn)} .cell.d{background:var(--danger)}
+.cell:hover{outline:1px solid var(--text);outline-offset:1px}
+.axis{display:flex;justify-content:space-between;color:var(--faint);font-size:11.5px}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-top:26px}
+.stat{background:var(--surface);padding:14px 16px}
+.stat b{display:block;font-size:21px;font-weight:600;letter-spacing:-.02em}
+.stat i{font-style:normal;color:var(--dim);font-size:12.5px}
+.pos{color:var(--safe)} .neg{color:var(--danger)}
+
+/* tables */
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:var(--r)}
+table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px}
+th{background:var(--raised);text-align:left;padding:9px 11px;font-weight:600;font-size:12px;color:var(--dim);white-space:nowrap;border-bottom:1px solid var(--line)}
+td{padding:7px 11px;border-bottom:1px solid var(--line);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--surface)}
+td.r,th.r{text-align:right}
+tr.gone td{opacity:.42}
+tr.gone td:first-child{text-decoration:line-through}
+tfoot td{background:var(--raised);font-weight:600;border-top:1px solid var(--line)}
+.tag{font-size:11px;color:var(--faint);border:1px solid var(--line);border-radius:3px;padding:1px 5px}
+
+/* inputs */
+input,select{
+  background:var(--base);color:var(--text);border:1px solid var(--line);
+  border-radius:4px;padding:6px 8px;font:inherit;font-size:13.5px;width:100%;
+  font-variant-numeric:tabular-nums;
+}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--act);outline-offset:1px}
+input[type=checkbox]{width:16px;height:16px;accent-color:var(--danger);cursor:pointer}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;max-width:820px}
+label{display:block;font-size:12.5px;color:var(--dim);margin-bottom:5px}
+button{
+  background:var(--raised);color:var(--text);border:1px solid var(--line);
+  border-radius:4px;padding:8px 15px;font:inherit;font-size:13.5px;font-weight:500;cursor:pointer
+}
+button:hover{border-color:var(--faint)}
+button.go{background:var(--act);border-color:var(--act);color:#0F1419;font-weight:600}
+button.q{background:none;border:none;color:var(--act);padding:4px 6px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:16px}
+
+/* gate */
+.gate{max-width:440px;margin:12vh auto;text-align:left}
+.gate h1{font-size:30px;letter-spacing:-.03em;margin-bottom:10px}
+.gate p{color:var(--dim);font-size:14px;margin-bottom:22px}
+.note{background:var(--surface);border-left:2px solid var(--warn);padding:11px 14px;border-radius:0 4px 4px 0;font-size:13px;color:var(--dim);margin:16px 0;max-width:74ch}
+.note b{color:var(--text);font-weight:600}
+.saving{position:fixed;right:16px;bottom:16px;background:var(--raised);border:1px solid var(--line);border-radius:4px;padding:7px 13px;font-size:12.5px;color:var(--dim);opacity:0;transition:opacity .2s;pointer-events:none}
+.saving.on{opacity:1}
+.hide{display:none!important}
+@media (max-width:640px){
+  body{padding:0 14px 60px} .strip{height:44px} section{padding:26px 0}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div id="gate" class="gate">
+  <h1>Runway</h1>
+  <p>Debt and reserve tracker. Sign in to load your data, or try it without saving. Import your figures from a local file once signed in.</p>
+  <div class="row" style="margin:0">
+    <button class="go" id="signin">Sign in with Google</button>
+    <button id="offline">Explore without saving</button>
+  </div>
+  <div class="note" id="gatemsg" style="display:none"></div>
+</div>
+
+<div id="invitegate" class="gate hide">
+  <h1>You&rsquo;re invited</h1>
+  <p id="invitetext"></p>
+  <div class="row" style="margin:0">
+    <button class="go" id="inviteaccept">Accept</button>
+    <button id="invitedecline">Decline</button>
+  </div>
+</div>
+
+<div id="app" class="wrap hide">
+  <header>
+    <div class="brand">Runway <span id="mode"></span></div>
+    <div class="who"><span id="uname"></span><button class="q" id="signout">Sign out</button></div>
+  </header>
+
+  <section class="hero">
+    <div class="verdict" id="verdict">—</div>
+    <div class="vsub" id="vsub"></div>
+    <div class="strip" id="strip"></div>
+    <div class="axis"><span id="ax0"></span><span id="ax1"></span></div>
+    <div class="stats" id="stats"></div>
+  </section>
+
+  <section>
+    <h2>Debts</h2>
+    <p class="sub">Tick <b>Clear</b> to model foreclosing a debt: its EMIs stop and the payoff comes off your reserve. Net saved is the interest you avoid minus the foreclosure charge.</p>
+    <div class="scroll"><table id="debts"></table></div>
+    <div class="row"><button id="adddebt">Add a debt</button></div>
+  </section>
+
+  <section>
+    <h2>Monthly commitments</h2>
+    <p class="sub">Everything that isn't a loan. Items marked variable are the ones your monthly actuals will override.</p>
+    <div class="scroll"><table id="house"></table></div>
+    <div class="row"><button id="addhouse">Add a commitment</button></div>
+  </section>
+
+  <section>
+    <h2>What actually happened</h2>
+    <p class="sub">Enter real spending as each month closes. Actual variable spend replaces the budgeted variable lines for that month. A balance checkpoint re-anchors the whole forecast to your real bank balance, so three years of small errors don't compound.</p>
+    <div class="scroll"><table id="log"></table></div>
+    <div class="row">
+      <select id="logmonth" style="width:auto;min-width:140px"></select>
+      <button id="addlog">Log this month</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Month by month</h2>
+    <p class="sub">The forecast, after every setting above.</p>
+    <div class="scroll" style="max-height:460px;overflow-y:auto"><table id="proj"></table></div>
+  </section>
+
+  <section>
+    <h2>Settings</h2>
+    <div class="fields">
+      <div><label for="s_res">Reserve in hand</label><input id="s_res" type="number"></div>
+      <div><label for="s_sal">Monthly salary</label><input id="s_sal" type="number"></div>
+      <div><label for="s_sp">Spouse income</label><input id="s_sp" type="number"></div>
+      <div><label for="s_st">Starting month</label><input id="s_st" type="month"></div>
+      <div><label for="s_hz">Months to project</label><input id="s_hz" type="number" min="12" max="120"></div>
+    </div>
+    <div class="row">
+      <button class="go" id="import">Import from file</button>
+      <button id="export">Export backup</button>
+      <button id="wipe">Clear everything</button>
+      <input id="file" type="file" accept="application/json" class="hide">
+    </div>
+    <div class="note">Your figures are never stored in this repository. Keep
+      <b>seed.json</b> on your machine and import it once; after that Firestore holds it,
+      protected by your auth rules. Export regularly — it is your only backup.</div>
+  </section>
+
+  <section id="memberssection" class="hide">
+    <h2>Members</h2>
+    <p class="sub">Everyone listed here can see and edit this data.</p>
+    <div id="memberlist"></div>
+    <div class="row" id="inviterow"><button id="invite">Invite someone</button></div>
+  </section>
+</div>
+
+<div class="saving" id="saving">Saved</div>
+
+<script type="module">
+import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import {getAuth,GoogleAuthProvider,signInWithPopup,signOut,onAuthStateChanged}
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import {getFirestore,doc,getDoc,setDoc,updateDoc,deleteDoc,arrayUnion}
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+/* ─── 1. PASTE YOUR FIREBASE CONFIG HERE ───────────────────────────────
+   Firebase console → Project settings → Your apps → Web app → config.
+   These values are safe in a public repo. Your Firestore RULES are what
+   protect the data — see firestore.rules in this repo.                  */
+const firebaseConfig = {
+  apiKey:            "AIzaSyCjcFhlFzI8snq0oc_sZEAaIcexllzdKuQ",
+  authDomain:        "runaway-445e5.firebaseapp.com",
+  projectId:         "runaway-445e5",
+  storageBucket:     "runaway-445e5.firebasestorage.app",
+  messagingSenderId: "585973648641",
+  appId:             "1:585973648641:web:f383d8c84826a6bc031f00"
+};
+/* ─────────────────────────────────────────────────────────────────────*/
+
+const CONFIGURED = !firebaseConfig.apiKey.startsWith('PASTE');
+let auth=null, db=null;
+if(CONFIGURED){
+  const fb = initializeApp(firebaseConfig);
+  auth = getAuth(fb); db = getFirestore(fb);
+}
+
+/* Starts empty on purpose — this file is public.
+   Your figures live in seed.json (git-ignored) and in Firestore behind your
+   auth rules. Settings → Import to load them the first time. */
+const EMPTY = () => ({
+  settings:{ reserve:0, salary:0, spouse:0, start:'2026-09', horizon:60 },
+  debts:[], house:[], log:{}
+});
+
+let D = EMPTY(), uid=null, myEmail=null, accountId=null, offline=false, timer=null;
+let ACC = { owner:null, members:[], memberInfo:[], invitedEmails:[] };
+let pendingInvite = null;
+const emailKey = e => String(e||'').trim().toLowerCase();
+
+/* ── helpers ── */
+const $  = s=>document.querySelector(s);
+const rs = n=>'₹'+Math.round(n).toLocaleString('en-IN');
+const esc= s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function mLabel(start,i){
+  const [y,m]=start.split('-').map(Number);
+  const d=new Date(y,m-1+i,1);
+  return d.toLocaleString('en-GB',{month:'short'})+'-'+String(d.getFullYear()).slice(2);
+}
+function mKey(start,i){
+  const [y,m]=start.split('-').map(Number);
+  const d=new Date(y,m-1+i,1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
+const payoff = d => d.out*(1+(d.fc||0)/100*1.18);
+const saved  = d => (d.emi*d.m - d.out) - (payoff(d)-d.out);
+
+/* ── projection ── */
+function project(){
+  const s=D.settings, H=Math.max(12,Math.min(120,+s.horizon||60));
+  let bal = +s.reserve - D.debts.filter(d=>d.x).reduce((a,d)=>a+payoff(d),0);
+  const rows=[];
+  for(let i=0;i<H;i++){
+    const key=mKey(s.start,i), lg=D.log[key]||{};
+    const emi = D.debts.reduce((a,d)=>a+(!d.x && i<d.m ? +d.emi:0),0);
+    const fixed = D.house.reduce((a,h)=>a+(!h.v && i<h.m ? +h.amt:0),0);
+    const varBudget = D.house.reduce((a,h)=>a+(h.v && i<h.m ? +h.amt:0),0);
+    const varUsed = (lg.actual===''||lg.actual==null) ? varBudget : +lg.actual;
+    const one = +lg.oneoff||0;
+    const out = emi+fixed+varUsed+one;
+    const inc = (+s.salary||0)+(+s.spouse||0)+(+lg.extraIncome||0);
+    bal += inc-out;
+    if(lg.checkpoint!=='' && lg.checkpoint!=null) bal=+lg.checkpoint;
+    rows.push({i,key,label:mLabel(s.start,i),emi,fixed,varUsed,one,out,inc,net:inc-out,bal,
+               isActual:(lg.actual!=null&&lg.actual!=='')||(lg.checkpoint!=null&&lg.checkpoint!=='')});
+  }
+  return rows;
+}
+
+/* ── render ── */
+function render(){
+  const R=project(), s=D.settings;
+  const dead=R.find(r=>r.bal<0);
+  const peak=Math.max(...R.map(r=>r.bal),1);
+  const low=R.reduce((a,b)=>b.bal<a.bal?b:a,R[0]);
+
+  $('#verdict').className='verdict'+(dead?'':' ok');
+  $('#verdict').innerHTML = dead
+    ? `Money runs out <em>${dead.label}</em>`
+    : `Money lasts past <em>${R[R.length-1].label}</em>`;
+  $('#vsub').textContent = dead
+    ? `That is ${dead.i} months from ${R[0].label}. Lowest point ${rs(low.bal)} in ${low.label}.`
+    : `Lowest point is ${rs(low.bal)} in ${low.label}, over ${R.length} months.`;
+
+  $('#strip').innerHTML = R.map(r=>{
+    const h=Math.max(2,Math.min(100,r.bal/peak*100));
+    const c=r.bal<0?'d':r.bal<peak*0.15?'w':'';
+    return `<div class="cell ${c}" style="height:${r.bal<0?4:h}%" title="${r.label}: ${rs(r.bal)}"></div>`;
+  }).join('');
+  $('#ax0').textContent=R[0].label; $('#ax1').textContent=R[R.length-1].label;
+
+  const cleared=D.debts.filter(d=>d.x);
+  const emiNow=R[0].emi, netNow=R[0].net;
+  $('#stats').innerHTML=[
+    ['Reserve now', rs(+s.reserve - cleared.reduce((a,d)=>a+payoff(d),0)), ''],
+    ['Monthly outgo', rs(R[0].out), ''],
+    ['Monthly gap', rs(netNow), netNow<0?'neg':'pos'],
+    ['Loan EMIs', rs(emiNow), ''],
+    ['Total owed', rs(D.debts.filter(d=>!d.x).reduce((a,d)=>a+ +d.out,0)), ''],
+    ['Interest saved', rs(cleared.reduce((a,d)=>a+saved(d),0)), cleared.length?'pos':'']
+  ].map(([l,v,c])=>`<div class="stat"><b class="${c}">${v}</b><i>${l}</i></div>`).join('');
+
+  // debts
+  let t=`<thead><tr><th>Debt</th><th>Name</th><th class="r">EMI</th><th class="r">Owed</th>
+    <th class="r">Left</th><th class="r">Rate</th><th class="r">Fee %</th><th class="r">Payoff</th>
+    <th class="r">Net saved</th><th>Clear</th><th></th></tr></thead><tbody>`;
+  if(!D.debts.length){
+    t+=`<tr><td colspan="11" style="color:var(--faint);padding:16px 11px">
+      No debts yet. Settings → Import from file, or add one below.</td></tr>`;
+  }
+  D.debts.forEach((d,i)=>{
+    t+=`<tr class="${d.x?'gone':''}">
+      <td title="${esc(d.note)}">${esc(d.n)}</td>
+      <td><span class="tag">${esc(d.who)}</span></td>
+      <td class="r"><input data-p="debts" data-i="${i}" data-k="emi"  type="number" step="0.01" value="${d.emi}" style="width:92px"></td>
+      <td class="r"><input data-p="debts" data-i="${i}" data-k="out"  type="number" value="${d.out}" style="width:100px"></td>
+      <td class="r"><input data-p="debts" data-i="${i}" data-k="m"    type="number" value="${d.m}" style="width:58px"></td>
+      <td class="r"><input data-p="debts" data-i="${i}" data-k="rate" type="number" step="0.01" value="${d.rate??''}" style="width:66px"></td>
+      <td class="r"><input data-p="debts" data-i="${i}" data-k="fc"   type="number" step="0.1" value="${d.fc}" style="width:56px"></td>
+      <td class="r">${rs(payoff(d))}</td>
+      <td class="r ${saved(d)>0?'pos':'neg'}">${rs(saved(d))}</td>
+      <td><input data-p="debts" data-i="${i}" data-k="x" type="checkbox" ${d.x?'checked':''}></td>
+      <td><button class="q" data-del="debts" data-i="${i}" aria-label="Remove">✕</button></td></tr>`;
+  });
+  const live=D.debts.filter(d=>!d.x);
+  t+=`</tbody><tfoot><tr><td colspan="2">${live.length} active</td>
+    <td class="r">${rs(live.reduce((a,d)=>a+ +d.emi,0))}</td>
+    <td class="r">${rs(live.reduce((a,d)=>a+ +d.out,0))}</td>
+    <td colspan="4"></td>
+    <td class="r">${rs(cleared.reduce((a,d)=>a+saved(d),0))}</td><td colspan="2"></td></tr></tfoot>`;
+  $('#debts').innerHTML=t;
+
+  // household
+  let h=`<thead><tr><th>Commitment</th><th class="r">Amount</th><th class="r">Months</th>
+    <th>Variable</th><th>Note</th><th></th></tr></thead><tbody>`;
+  D.house.forEach((x,i)=>{
+    h+=`<tr>
+      <td><input data-p="house" data-i="${i}" data-k="n" value="${esc(x.n)}" style="width:180px"></td>
+      <td class="r"><input data-p="house" data-i="${i}" data-k="amt" type="number" value="${x.amt}" style="width:100px"></td>
+      <td class="r"><input data-p="house" data-i="${i}" data-k="m" type="number" value="${x.m}" style="width:58px"></td>
+      <td><input data-p="house" data-i="${i}" data-k="v" type="checkbox" ${x.v?'checked':''}></td>
+      <td style="color:var(--faint);font-size:12.5px">${esc(x.note)}</td>
+      <td><button class="q" data-del="house" data-i="${i}" aria-label="Remove">✕</button></td></tr>`;
+  });
+  h+=`</tbody><tfoot><tr><td>Total</td><td class="r">${rs(D.house.reduce((a,x)=>a+ +x.amt,0))}</td><td colspan="4"></td></tr></tfoot>`;
+  $('#house').innerHTML=h;
+
+  // log
+  const keys=Object.keys(D.log).sort();
+  let g=`<thead><tr><th>Month</th><th class="r">Actual variable spend</th><th class="r">One-offs</th>
+    <th class="r">Extra income</th><th class="r">Balance checkpoint</th><th>Note</th><th></th></tr></thead><tbody>`;
+  if(!keys.length){
+    g+=`<tr><td colspan="7" style="color:var(--faint);padding:16px 11px">
+      Nothing logged yet. Pick a month below to record what you actually spent.</td></tr>`;
+  }
+  keys.forEach(k=>{
+    const l=D.log[k], bud=D.house.filter(x=>x.v).reduce((a,x)=>a+ +x.amt,0);
+    g+=`<tr>
+      <td>${k}</td>
+      <td class="r"><input data-p="log" data-i="${k}" data-k="actual" type="number" placeholder="${bud}" value="${l.actual??''}" style="width:110px"></td>
+      <td class="r"><input data-p="log" data-i="${k}" data-k="oneoff" type="number" placeholder="0" value="${l.oneoff??''}" style="width:96px"></td>
+      <td class="r"><input data-p="log" data-i="${k}" data-k="extraIncome" type="number" placeholder="0" value="${l.extraIncome??''}" style="width:96px"></td>
+      <td class="r"><input data-p="log" data-i="${k}" data-k="checkpoint" type="number" placeholder="—" value="${l.checkpoint??''}" style="width:110px"></td>
+      <td><input data-p="log" data-i="${k}" data-k="note" value="${esc(l.note??'')}" style="width:170px"></td>
+      <td><button class="q" data-del="log" data-i="${k}" aria-label="Remove">✕</button></td></tr>`;
+  });
+  $('#log').innerHTML=g+'</tbody>';
+
+  const sel=$('#logmonth');
+  sel.innerHTML=R.map(r=>`<option value="${r.key}">${r.label}</option>`).join('');
+
+  // projection
+  let p=`<thead><tr><th>Month</th><th class="r">EMIs</th><th class="r">Fixed</th><th class="r">Variable</th>
+    <th class="r">Outgo</th><th class="r">Income</th><th class="r">Net</th><th class="r">Reserve</th></tr></thead><tbody>`;
+  R.forEach(r=>{
+    p+=`<tr><td>${r.label}${r.isActual?' <span class="tag">actual</span>':''}</td>
+      <td class="r">${rs(r.emi)}</td><td class="r">${rs(r.fixed)}</td>
+      <td class="r">${rs(r.varUsed+r.one)}</td><td class="r">${rs(r.out)}</td>
+      <td class="r">${rs(r.inc)}</td><td class="r ${r.net<0?'neg':'pos'}">${rs(r.net)}</td>
+      <td class="r ${r.bal<0?'neg':''}"><b>${rs(r.bal)}</b></td></tr>`;
+  });
+  $('#proj').innerHTML=p+'</tbody>';
+
+  $('#s_res').value=s.reserve; $('#s_sal').value=s.salary;
+  $('#s_sp').value=s.spouse;   $('#s_st').value=s.start; $('#s_hz').value=s.horizon;
+
+  renderMembers();
+}
+
+function renderMembers(){
+  const box=$('#memberssection');
+  if(offline||!uid){ box.classList.add('hide'); return; }
+  box.classList.remove('hide');
+  const isOwner = uid===ACC.owner;
+  const pending = (ACC.invitedEmails||[]).filter(e=>!(ACC.memberInfo||[]).some(m=>m.email===e));
+  let h = (ACC.memberInfo||[]).map(m=>
+    `<div class="row" style="margin-top:6px"><span>${esc(m.name||m.email)}</span>
+     <span class="tag">${esc(m.email)}</span>${m.uid===ACC.owner?'<span class="tag">owner</span>':''}</div>`
+  ).join('');
+  h += pending.map(e=>
+    `<div class="row" style="margin-top:6px"><span style="color:var(--dim)">${esc(e)}</span>
+     <span class="tag">invited — waiting</span>
+     ${isOwner?`<button class="q" data-cancelinvite="${esc(e)}">Cancel</button>`:''}</div>`
+  ).join('');
+  $('#memberlist').innerHTML = h || '<p class="sub">Just you.</p>';
+  $('#inviterow').classList.toggle('hide', !isOwner);
+}
+
+/* ── edits ── */
+document.addEventListener('input',e=>{
+  const el=e.target;
+  if(el.dataset.p){
+    const {p,i,k}=el.dataset;
+    const val = el.type==='checkbox' ? el.checked
+              : (el.type==='number' ? (el.value===''?'':+el.value) : el.value);
+    if(p==='log'){ D.log[i]=D.log[i]||{}; D.log[i][k]=val; }
+    else D[p][+i][k]=val;
+    if(p!=='log' || k==='note'){ render(); } else { render(); }
+    save();
+  }
+  if(el.id?.startsWith('s_')){
+    const map={s_res:'reserve',s_sal:'salary',s_sp:'spouse',s_st:'start',s_hz:'horizon'};
+    D.settings[map[el.id]] = el.type==='number' ? +el.value : el.value;
+    render(); save();
+  }
+});
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-del]');
+  if(b){
+    const {del,i}=b.dataset;
+    if(del==='log') delete D.log[i]; else D[del].splice(+i,1);
+    render(); save();
+    return;
+  }
+  const c=e.target.closest('[data-cancelinvite]');
+  if(c){ cancelInvite(c.dataset.cancelinvite); }
+});
+$('#adddebt').onclick=()=>{ D.debts.push({n:'New debt',who:'Daniel',emi:0,out:0,m:12,rate:null,fc:3,x:false,note:''}); render(); save(); };
+$('#addhouse').onclick=()=>{ D.house.push({n:'New commitment',amt:0,m:60,v:false,note:''}); render(); save(); };
+$('#addlog').onclick=()=>{ const k=$('#logmonth').value; D.log[k]=D.log[k]||{actual:'',oneoff:'',extraIncome:'',checkpoint:'',note:''}; render(); save(); };
+$('#wipe').onclick=()=>{ if(confirm('Clear all debts, commitments and logs?')){ D=EMPTY(); render(); save(); } };
+$('#import').onclick=()=>$('#file').click();
+$('#file').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const v=JSON.parse(r.result);
+      if(!v || typeof v!=='object') throw new Error('not an object');
+      D={ settings:{...EMPTY().settings,...(v.settings||{})},
+          debts:Array.isArray(v.debts)?v.debts:[],
+          house:Array.isArray(v.house)?v.house:[],
+          log:(v.log&&typeof v.log==='object')?v.log:{} };
+      render(); save(); flash('Imported');
+    }catch(err){ alert('Could not read that file: '+err.message); }
+  };
+  r.readAsText(f);
+  e.target.value='';
+};
+$('#export').onclick=()=>{
+  const blob=new Blob([JSON.stringify(D,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='runway-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click(); URL.revokeObjectURL(a.href);
+};
+
+/* ── persistence ── */
+function flash(msg){ const el=$('#saving'); el.textContent=msg; el.classList.add('on'); setTimeout(()=>el.classList.remove('on'),1400); }
+function save(){
+  if(offline||!uid||!accountId) return;
+  clearTimeout(timer);
+  timer=setTimeout(async()=>{
+    try{ await updateDoc(doc(db,'accounts',accountId),{settings:D.settings,debts:D.debts,house:D.house,log:D.log,updated:Date.now()}); flash('Saved'); }
+    catch(err){ flash('Not saved — check Firestore rules'); console.error(err); }
+  },700);
+}
+async function load(){
+  try{
+    const snap=await getDoc(doc(db,'accounts',accountId));
+    if(snap.exists()){
+      const v=snap.data();
+      D={settings:{...EMPTY().settings,...(v.settings||{})},
+         debts:v.debts||EMPTY().debts, house:v.house||EMPTY().house, log:v.log||{}};
+      ACC={owner:v.owner, members:v.members||[], memberInfo:v.memberInfo||[], invitedEmails:v.invitedEmails||[]};
+    }
+  }catch(err){ console.error(err); flash('Could not load — check Firestore rules'); }
+}
+function start(){ $('#gate').classList.add('hide'); $('#invitegate').classList.add('hide'); $('#app').classList.remove('hide'); render(); }
+
+/* ── account resolution: find or create the shared dataset this uid belongs to ── */
+async function resolveAccount(u){
+  uid=u.uid; myEmail=emailKey(u.email);
+  $('#uname').textContent=u.displayName||u.email;
+
+  const uSnap=await getDoc(doc(db,'users',uid));
+  if(uSnap.exists()){
+    accountId=uSnap.data().accountId;
+    await load(); start();
+    return;
+  }
+
+  const invSnap=await getDoc(doc(db,'invites',myEmail));
+  if(invSnap.exists() && invSnap.data().status==='pending'){
+    pendingInvite=invSnap.data();
+    $('#invitetext').textContent=(pendingInvite.invitedByName||'Someone')+' has invited you to their Runway data. Accepting gives you full view and edit access.';
+    $('#gate').classList.add('hide');
+    $('#invitegate').classList.remove('hide');
+    return;
+  }
+
+  // brand-new owner — create their own account
+  accountId=uid;
+  await setDoc(doc(db,'accounts',accountId),{
+    owner:uid, members:[uid],
+    memberInfo:[{uid,email:myEmail,name:u.displayName||myEmail}],
+    invitedEmails:[],
+    ...EMPTY(), updated:Date.now()
+  });
+  await setDoc(doc(db,'users',uid),{accountId});
+  D=EMPTY();
+  start();
+}
+
+async function acceptInvite(){
+  const accId=pendingInvite.accountId;
+  try{
+    await updateDoc(doc(db,'invites',myEmail),{status:'accepted',acceptedAt:Date.now()});
+    await updateDoc(doc(db,'accounts',accId),{
+      members:arrayUnion(uid),
+      memberInfo:arrayUnion({uid,email:myEmail,name:auth.currentUser.displayName||myEmail})
+    });
+    await setDoc(doc(db,'users',uid),{accountId:accId});
+    accountId=accId; pendingInvite=null;
+    await load(); start();
+  }catch(err){ alert('Could not accept invite: '+err.message); console.error(err); }
+}
+async function declineInvite(){
+  try{ await updateDoc(doc(db,'invites',myEmail),{status:'declined'}); }
+  catch(err){ console.error(err); }
+  pendingInvite=null;
+  $('#invitegate').classList.add('hide');
+  await signOut(auth);
+}
+async function sendInvite(){
+  const raw=prompt('Invite by Google email address:'); if(!raw) return;
+  const inv=emailKey(raw);
+  if(!inv.includes('@')) return alert('Enter a valid email.');
+  try{
+    await setDoc(doc(db,'invites',inv),{
+      accountId, invitedBy:uid, invitedByName:auth.currentUser.displayName||myEmail,
+      email:inv, status:'pending', createdAt:Date.now()
+    });
+    await updateDoc(doc(db,'accounts',accountId),{invitedEmails:arrayUnion(inv)});
+    ACC.invitedEmails=Array.from(new Set([...(ACC.invitedEmails||[]),inv]));
+    renderMembers(); flash('Invited');
+  }catch(err){ alert('Could not send invite: '+err.message); console.error(err); }
+}
+async function cancelInvite(inv){
+  try{ await deleteDoc(doc(db,'invites',inv)); }
+  catch(err){ alert('Could not cancel invite: '+err.message); console.error(err); return; }
+  ACC.invitedEmails=(ACC.invitedEmails||[]).filter(e=>e!==inv);
+  renderMembers();
+}
+
+$('#offline').onclick=()=>{ offline=true; $('#mode').textContent='· not saving'; $('#signout').classList.add('hide'); start(); };
+$('#signin').onclick=async()=>{
+  if(!CONFIGURED){
+    const m=$('#gatemsg'); m.style.display='block';
+    m.innerHTML='<b>Firebase isn\u2019t configured yet.</b> Paste your config into the <code>firebaseConfig</code> block near the top of index.html, then reload. Until then, use Explore without saving.';
+    return;
+  }
+  try{ await signInWithPopup(auth,new GoogleAuthProvider()); }
+  catch(err){ const m=$('#gatemsg'); m.style.display='block'; m.textContent='Sign-in failed: '+err.code; }
+};
+$('#signout').onclick=()=>signOut(auth);
+$('#invite').onclick=sendInvite;
+$('#inviteaccept').onclick=acceptInvite;
+$('#invitedecline').onclick=declineInvite;
+
+if(CONFIGURED){
+  onAuthStateChanged(auth,async u=>{
+    if(u){ await resolveAccount(u); }
+    else { uid=null; accountId=null; $('#app').classList.add('hide'); $('#invitegate').classList.add('hide'); $('#gate').classList.remove('hide'); }
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+# Your actual figures. Never commit this — the repo is public.
+seed.json
+runway-*.json
+
+# Local Firebase / tooling
+.firebase/
+.firebaserc
+firebase-debug.log
+node_modules/
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
