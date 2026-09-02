@@ -80,15 +80,30 @@ if log[month].checkpoint is set: balance = checkpoint   // re-anchor
 
 `settings.salary` (labelled "Salary 1" in the UI) is the one fixed recurring
 income. Everything else — a second salary, a spouse's income, a one-time
-top-up — lives in `cash[]`, each entry `{n, amt, type, from}`: `type` is
-`'recurring'` (counts every month from `from` onward, no end date) or
-`'oneoff'` (counts exactly once, in the month named by `from`).
-`monthIndex(from)` converts that `YYYY-MM` string to a horizon-relative index
+top-up — lives in `cash[]`, each entry `{n, amt, type, from, to}`: `type` is
+`'recurring'` (counts every month from `from` onward, through and including
+`to` if set, or with no end date if `to` is null/absent) or `'oneoff'`
+(counts exactly once, in the month named by `from`; `to` is unused).
+`monthIndex(from)` converts a `YYYY-MM` string to a horizon-relative index
 the same way `mKey`/`mLabel` go the other direction. A `spouse` field used to
 live directly on `settings`; `migrateSpouseIncome()` carries any real figure
 found there into a `cash` row (tagged `migratedSpouse: true`) the first time
 older data loads, so a schema change never silently drops real income — see
 the hard constraint above about money being arithmetic, not vibes.
+
+The Cash In section (right after the overview) is a two-column layout: the
+left column lists Reserve, Salary 1, and every `cash[]` entry as glass cards
+(`.glass`) — clicking one opens a glass-themed `<dialog>` (`#cashdialog`) to
+edit it; Reserve/Salary only expose an amount, cash entries expose label,
+amount, type, start and optional end. The right column is a scrollable
+month-by-month card showing, per month, a 100%-stacked bar of that month's
+money in hand split into reserve carried over (`r.open`, floored at 0),
+Salary 1, and other cash (`cashIn + extraIncome`, floored at 0) — it never
+shows negative, since it conveys inflow composition, not the runway balance.
+The current month (`r.i===0`) gets an outline. `project()` exposes `open`
+(opening balance before that month's flow), `salary`, `cashIn` and
+`extraIncome` per row specifically so this chart can be built without
+recomputing the breakdown.
 
 Opening balance is `settings.reserve` minus the payoff of every debt marked
 cleared. `payoff = outstanding × (1 + fee% × 1.18)` — the 1.18 is 18% GST on the
