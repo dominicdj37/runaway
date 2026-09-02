@@ -91,19 +91,45 @@ found there into a `cash` row (tagged `migratedSpouse: true`) the first time
 older data loads, so a schema change never silently drops real income — see
 the hard constraint above about money being arithmetic, not vibes.
 
-The Cash In section (right after the overview) is a two-column layout: the
-left column lists Reserve, Salary 1, and every `cash[]` entry as glass cards
-(`.glass`) — clicking one opens a glass-themed `<dialog>` (`#cashdialog`) to
-edit it; Reserve/Salary only expose an amount, cash entries expose label,
-amount, type, start and optional end. The right column is a scrollable
-month-by-month card showing, per month, a 100%-stacked bar of that month's
-money in hand split into reserve carried over (`r.open`, floored at 0),
-Salary 1, and other cash (`cashIn + extraIncome`, floored at 0) — it never
-shows negative, since it conveys inflow composition, not the runway balance.
-The current month (`r.i===0`) gets an outline. `project()` exposes `open`
-(opening balance before that month's flow), `salary`, `cashIn` and
-`extraIncome` per row specifically so this chart can be built without
-recomputing the breakdown.
+The Cash In section (right after the overview) is one glass card
+(`.cashcard`) split into two tracks by a vertical divider (`.cashdivider`):
+left lists Reserve, Salary 1, and every `cash[]` entry as glass cards
+(`.srccard`) — clicking one opens a glass-themed `<dialog>` (`#cashdialog`)
+to edit it; Reserve/Salary only expose an amount, cash entries expose label,
+amount, type, start and optional end. Right is a month-by-month list
+(`#cashflow`) showing, per month, a 100%-stacked bar of that month's money
+in hand split into reserve carried over (`r.open`, floored at 0), Salary 1,
+and other cash (`cashIn + extraIncome`, floored at 0), with the actual
+rupee amount per segment spelled out underneath (`.mflowbreak`) and on
+hover (`title` on each `.seg`) — it never shows negative, since it conveys
+inflow composition, not the runway balance. The current month (`r.i===0`)
+gets an outline. `project()` exposes `open` (opening balance before that
+month's flow), `salary`, `cashIn` and `extraIncome` per row specifically so
+this chart can be built without recomputing the breakdown.
+
+The right list's height is capped to match the left column's own
+(unstretched) height, not the other way round — `syncCashHeights()`
+measures `.cashleft`'s `offsetHeight` and sets `#cashflow`'s `max-height`
+to it (minus the right side's own header height) after every `render()`
+and on window resize. This exists because CSS Grid's `auto` row sizing has
+no clean way to say "size this track to my sibling, then let me scroll
+internally" — an unbounded `overflow:auto` list still contributes its full
+content height to the row, which stretched the *shorter* column and left
+blank space under it instead. Below 760px the two tracks stack, the divider
+hides, and `#cashflow` falls back to a fixed CSS `max-height` instead (JS
+resets its inline height to nothing at that width). See
+[[arch-glass-dialog-centering]] for a related CSS-vs-JS lesson from the
+same section.
+
+The runway strip (`#strip`, hero section) is hover-interactive: a custom
+glass tooltip (`#striptip`, positioned in JS via `mousemove`, no native
+`title`) shows that month's label, balance, income, outgo and net on
+hover, and a `click` handler does the same on tap for touch devices where
+hover doesn't fire. The current month (`i===0`) gets a permanent outline
+and a small tick mark (`.cell.cur`) so it reads without hovering. Rows are
+matched back to their full data via `data-i` on each `.cell` and a
+module-scope `lastR` (the most recent `project()` output, set at the end of
+`renderLive()`) — the tooltip never recomputes the projection itself.
 
 Opening balance is `settings.reserve` minus the payoff of every debt marked
 cleared. `payoff = outstanding × (1 + fee% × 1.18)` — the 1.18 is 18% GST on the

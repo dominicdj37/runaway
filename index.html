@@ -43,13 +43,21 @@ header{display:flex;align-items:center;justify-content:space-between;gap:16px;pa
 .vsub{color:var(--dim);margin-top:8px;font-size:14.5px;max-width:64ch}
 
 /* runway strip */
-.strip{display:flex;gap:2px;margin:26px 0 8px;height:96px;position:relative}
+.strip{display:flex;gap:2px;margin:26px 0 8px;height:96px;position:relative;cursor:crosshair}
 .cell{flex:1;min-width:0;position:relative;height:100%}
 .bar{position:absolute;left:0;right:0;border-radius:2px;background:var(--safe);transition:height .25s,bottom .25s}
 .bar.w{background:var(--warn)} .bar.d{background:var(--danger)}
 .cell:hover .bar{outline:1px solid var(--text);outline-offset:1px}
+.cell.cur .bar{box-shadow:0 0 0 1px var(--act)}
+.cell.cur::after{content:'';position:absolute;left:0;right:0;bottom:-6px;height:3px;border-radius:2px;background:var(--act)}
 .zeroline{position:absolute;left:0;right:0;height:1px;background:var(--faint);opacity:.5;pointer-events:none}
 .axis{display:flex;justify-content:space-between;color:var(--faint);font-size:11.5px}
+.striptip{
+  position:fixed;z-index:50;padding:10px 12px;font-size:12.5px;line-height:1.45;
+  pointer-events:none;white-space:nowrap;transition:opacity .1s;
+}
+.striptip b{display:block;font-size:13.5px;margin-bottom:4px}
+.striptip .tipnet{margin-top:2px}
 
 /* stats */
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-top:26px}
@@ -103,8 +111,24 @@ button.q{background:none;border:none;color:var(--act);padding:4px 6px}
   border:1px solid rgba(255,255,255,.08); box-shadow:0 4px 24px rgba(0,0,0,.22);
   border-radius:10px;
 }
-.cashgrid{display:grid;grid-template-columns:1.1fr 1fr;gap:20px;align-items:start}
-.legend{display:flex;gap:16px;flex-wrap:wrap;color:var(--dim);font-size:12px;margin-bottom:14px}
+.cashcard{padding:22px 24px}
+.cashcard>h2{margin-bottom:4px}
+.cashcard>.sub{margin-bottom:0}
+/* left and right sit in one card as two tracks of a grid. CSS Grid's
+   auto-track sizing has no clean way to say "size this track to my sibling,
+   then let me scroll" — an unbounded overflow:auto list still contributes
+   its full content height to sizing, which stretches the *other* column
+   and creates the blank space this layout is meant to avoid. So .cashleft
+   opts out of stretch (always its own intrinsic height) and JS
+   (syncCashHeights(), called after every render()) measures it and caps
+   #cashflow's max-height to match, leaving a default cap here only as a
+   pre-JS/no-JS fallback. */
+.cashsplit{display:grid;grid-template-columns:1.1fr auto 1fr;gap:22px;margin-top:18px}
+.cashleft{display:flex;flex-direction:column;align-self:start}
+.cashdivider{width:1px;background:rgba(255,255,255,.1)}
+.cashright{display:flex;flex-direction:column;min-height:0}
+.cashright-head{flex:none}
+.legend{display:flex;gap:16px;flex-wrap:wrap;color:var(--dim);font-size:12px;margin:2px 0 14px}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
 .dot.reserve{background:var(--act)} .dot.salary{background:var(--safe)} .dot.other{background:var(--acc2)}
@@ -116,18 +140,25 @@ button.q{background:none;border:none;color:var(--act);padding:4px 6px}
 .srcmeta{font-size:11.5px;color:var(--faint);margin-top:2px}
 .srcamt{font-weight:600;font-size:15px;text-align:right}
 .srcright{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
-.cashright .glass{padding:16px 16px 14px;display:flex;flex-direction:column;height:100%;aspect-ratio:4/5;max-height:600px;min-height:340px}
 .cashright h3{font-size:14px;font-weight:600;margin-bottom:2px}
-.cashright .sub{margin-bottom:12px}
-.mflowlist{overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:11px;padding-right:6px;margin-right:-6px}
+.mflowlist{overflow-y:auto;flex:1;min-height:0;max-height:460px;display:flex;flex-direction:column;gap:11px;padding-right:6px;margin-right:-6px}
 .mflowrow{padding:8px 10px;border-radius:8px;border:1px solid transparent}
 .mflowrow.cur{border-color:var(--act);background:rgba(123,160,220,.08)}
 .mflowhead{display:flex;justify-content:space-between;font-size:12.5px;color:var(--dim);margin-bottom:6px}
 .mflowbar{display:flex;height:9px;border-radius:5px;overflow:hidden;background:var(--raised)}
-.seg{height:100%}
+.seg{height:100%;cursor:default}
 .seg.reserve{background:var(--act)} .seg.salary{background:var(--safe)}
 .seg.other{background:var(--acc2)} .seg.empty{background:var(--line)}
-@media (max-width:760px){ .cashgrid{grid-template-columns:1fr} .cashright .glass{aspect-ratio:auto;height:340px;max-height:340px} }
+.mflowbreak{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:5px;font-size:10.5px;color:var(--faint)}
+.mflowbreak b{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px}
+.mflowbreak .reserve b{background:var(--act)} .mflowbreak .salary b{background:var(--safe)} .mflowbreak .other b{background:var(--acc2)}
+@media (max-width:760px){
+  .cashcard{padding:18px}
+  .cashsplit{grid-template-columns:1fr;gap:0}
+  .cashdivider{display:none}
+  .cashright{min-height:0;border-top:1px solid rgba(255,255,255,.1);margin-top:20px;padding-top:16px}
+  .mflowlist{max-height:320px}
+}
 
 /* dialog */
 dialog.glassdialog{
@@ -188,29 +219,31 @@ dialog.glassdialog .row{justify-content:flex-end;margin-top:4px}
     <div class="verdict" id="verdict">—</div>
     <div class="vsub" id="vsub"></div>
     <div class="strip" id="strip"></div>
+    <div class="glass striptip hide" id="striptip"></div>
     <div class="axis"><span id="ax0"></span><span id="ax1"></span></div>
     <div class="stats" id="stats"></div>
   </section>
 
   <section class="cashbg">
-    <h2>Cash in</h2>
-    <p class="sub">What you have and what comes in. Reserve and Salary 1 are always on;
-      add another income or a one-time top-up — each can start (and optionally end)
-      partway through the horizon instead of running the whole way.</p>
-    <div class="cashgrid">
-      <div>
-        <div id="cashsources" class="srclist"></div>
-        <div class="row"><button id="addcash">Add cash</button></div>
-      </div>
-      <div class="cashright">
-        <div class="glass">
-          <h3>Cash flow by month</h3>
-          <p class="sub">How this month's money in hand breaks down — reserve carried over,
-            salary, and everything else.</p>
-          <div class="legend">
-            <span><span class="dot reserve"></span>Reserve carried</span>
-            <span><span class="dot salary"></span>Salary 1</span>
-            <span><span class="dot other"></span>Other cash</span>
+    <div class="glass cashcard">
+      <h2>Cash in</h2>
+      <p class="sub">What you have and what comes in. Reserve and Salary 1 are always on;
+        add another income or a one-time top-up — each can start (and optionally end)
+        partway through the horizon instead of running the whole way.</p>
+      <div class="cashsplit">
+        <div class="cashleft">
+          <div id="cashsources" class="srclist"></div>
+          <div class="row"><button id="addcash">Add cash</button></div>
+        </div>
+        <div class="cashdivider"></div>
+        <div class="cashright">
+          <div class="cashright-head">
+            <h3>Cash flow by month</h3>
+            <div class="legend">
+              <span><span class="dot reserve"></span>Reserve carried</span>
+              <span><span class="dot salary"></span>Salary 1</span>
+              <span><span class="dot other"></span>Other cash</span>
+            </div>
           </div>
           <div id="cashflow" class="mflowlist"></div>
         </div>
@@ -346,6 +379,7 @@ function migrateSpouseIncome(rawSettings){
 }
 
 let D = EMPTY(), uid=null, myEmail=null, accountId=null, offline=false, timer=null;
+let lastR=null; // most recent project() rows, for the strip's hover tooltip
 let ACC = { owner:null, members:[], memberInfo:[], invitedEmails:[] };
 let pendingInvite = null;
 const emailKey = e => String(e||'').trim().toLowerCase();
@@ -452,9 +486,10 @@ function renderLive(){
     const mag=scaleFloor(Math.abs(r.bal)/extent*ceil, ceil);
     const c=r.bal<0?'d':r.bal<peak*0.15?'w':'';
     const bottom=r.bal>=0 ? negPx : Math.max(0,negPx-mag);
-    return `<div class="cell"><div class="bar ${c}" style="bottom:${bottom}px;height:${mag}px" title="${r.label}: ${rs(r.bal)}"></div></div>`;
+    return `<div class="cell${r.i===0?' cur':''}" data-i="${r.i}"><div class="bar ${c}" style="bottom:${bottom}px;height:${mag}px"></div></div>`;
   }).join('');
   $('#ax0').textContent=R[0].label; $('#ax1').textContent=R[R.length-1].label;
+  lastR=R;
 
   const cleared=D.debts.filter(d=>d.x);
   const emiNow=R[0].emi, netNow=R[0].net;
@@ -484,18 +519,22 @@ function renderLive(){
   // cash flow by month: 100%-stacked bar per row — how that month's money
   // in hand splits between reserve carried over, Salary 1 and other cash.
   // Never shows negative: each component floors at 0, since this only
-  // conveys inflow composition, not the runway balance itself.
+  // conveys inflow composition, not the runway balance itself. A breakdown
+  // line under the bar spells out the actual rupee amount per segment
+  // (native title tooltips repeat it on hover, for touch it's just there).
+  const segLabel={reserve:'Reserve',salary:'Salary 1',other:'Other cash'};
   $('#cashflow').innerHTML = R.map(r=>{
     const resC=Math.max(r.open,0), salC=Math.max(r.salary,0), othC=Math.max(r.cashIn+r.extraIncome,0);
     const total=resC+salC+othC;
-    const segs = total>0
-      ? [['reserve',resC],['salary',salC],['other',othC]]
-          .filter(([,v])=>v>0)
-          .map(([c,v])=>`<span class="seg ${c}" style="width:${(v/total*100).toFixed(2)}%"></span>`).join('')
+    const parts=[['reserve',resC],['salary',salC],['other',othC]].filter(([,v])=>v>0);
+    const segs = parts.length
+      ? parts.map(([c,v])=>`<span class="seg ${c}" style="width:${(v/total*100).toFixed(2)}%" title="${segLabel[c]}: ${rs(v)}"></span>`).join('')
       : `<span class="seg empty"></span>`;
+    const brk = parts.map(([c,v])=>`<span class="${c}"><b></b>${rs(v)}</span>`).join('');
     return `<div class="mflowrow${r.i===0?' cur':''}">
       <div class="mflowhead"><span>${r.label}</span><span class="num">${rs(total)}</span></div>
-      <div class="mflowbar">${segs}</div></div>`;
+      <div class="mflowbar">${segs}</div>
+      <div class="mflowbreak">${brk}</div></div>`;
   }).join('');
 
   return R;
@@ -599,7 +638,20 @@ function render(){
   sel.innerHTML=R.map(r=>`<option value="${r.key}">${r.label}</option>`).join('');
 
   renderMembers();
+  syncCashHeights();
 }
+
+// Caps #cashflow's height to match .cashleft's own (unstretched) content
+// height, so the month-by-month list scrolls internally instead of forcing
+// blank space under the shorter source list — see the .cashsplit comment.
+function syncCashHeights(){
+  const left=$('.cashleft'), head=$('.cashright-head'), list=$('#cashflow');
+  if(!left||!head||!list) return;
+  if(innerWidth<=760){ list.style.maxHeight=''; return; }
+  const budget=left.offsetHeight-head.offsetHeight;
+  list.style.maxHeight=Math.max(120,budget)+'px';
+}
+window.addEventListener('resize',syncCashHeights);
 
 function renderMembers(){
   const box=$('#memberssection');
@@ -688,6 +740,49 @@ $('#cashform').addEventListener('submit',e=>{
   }
   cashDialog.close();
   render(); save();
+});
+
+/* ── strip tooltip ──
+   #strip's innerHTML is rebuilt on every renderLive() call, but #strip
+   itself never is — so these listeners are attached once, delegated onto
+   it, and keep working across re-renders without re-attaching. */
+const stripTip=$('#striptip');
+function stripTipHTML(r){
+  return `<b>${r.label}${r.i===0?' · now':''}</b>
+    Reserve <span class="num">${rs(r.bal)}</span><br>
+    <span class="tipnet">Income ${rs(r.inc)} · Outgo ${rs(r.out)} · Net
+    <span class="${r.net<0?'neg':'pos'}">${rs(r.net)}</span></span>`;
+}
+function showStripTip(cell,x,y){
+  const r=lastR && lastR[+cell.dataset.i];
+  if(!r) return;
+  stripTip.innerHTML=stripTipHTML(r);
+  stripTip.classList.remove('hide');
+  positionStripTip(x,y);
+}
+function positionStripTip(x,y){
+  const pad=14, tw=stripTip.offsetWidth||180, th=stripTip.offsetHeight||60;
+  let left=x+pad, top=y-th-pad;
+  if(left+tw>innerWidth-8) left=x-tw-pad;
+  if(top<8) top=y+pad;
+  stripTip.style.left=left+'px'; stripTip.style.top=top+'px';
+}
+function hideStripTip(){ stripTip.classList.add('hide'); }
+$('#strip').addEventListener('mouseover',e=>{
+  const cell=e.target.closest('.cell'); if(cell) showStripTip(cell,e.clientX,e.clientY);
+});
+$('#strip').addEventListener('mousemove',e=>{
+  const cell=e.target.closest('.cell'); if(cell) positionStripTip(e.clientX,e.clientY);
+});
+$('#strip').addEventListener('mouseleave',hideStripTip);
+$('#strip').addEventListener('click',e=>{
+  // touch devices don't hover — tap a bar to show, tap again to dismiss
+  const cell=e.target.closest('.cell');
+  if(!cell){ hideStripTip(); return; }
+  if(!stripTip.classList.contains('hide') && stripTip.dataset.i===cell.dataset.i){ hideStripTip(); return; }
+  stripTip.dataset.i=cell.dataset.i;
+  const rect=cell.getBoundingClientRect();
+  showStripTip(cell,rect.left+rect.width/2,rect.top);
 });
 
 /* ── edits ── */
