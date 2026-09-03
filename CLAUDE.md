@@ -91,9 +91,12 @@ found there into a `cash` row (tagged `migratedSpouse: true`) the first time
 older data loads, so a schema change never silently drops real income — see
 the hard constraint above about money being arithmetic, not vibes.
 
-The Cash In section (right after the overview) is one glass card
-(`.cashcard`) split into two tracks by a vertical divider (`.cashdivider`):
-left lists Reserve, Salary 1, and every `cash[]` entry as glass cards
+The Cash In section (right after the overview) has its `h2`/`.sub` heading
+flush left like every other section on the page — not inside the card,
+which would indent it relative to the rest of the page. Below that, one
+glass card (`.cashcard`) is split into two tracks by a vertical divider
+(`.cashdivider`): left lists Reserve, Salary 1, and every `cash[]` entry as
+glass cards
 (`.srccard`) — clicking one opens a glass-themed `<dialog>` (`#cashdialog`)
 to edit it; Reserve/Salary only expose an amount, cash entries expose label,
 amount, type, start and optional end. Right is a month-by-month list

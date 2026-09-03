@@ -112,8 +112,6 @@ button.q{background:none;border:none;color:var(--act);padding:4px 6px}
   border-radius:10px;
 }
 .cashcard{padding:22px 24px}
-.cashcard>h2{margin-bottom:4px}
-.cashcard>.sub{margin-bottom:0}
 /* left and right sit in one card as two tracks of a grid. CSS Grid's
    auto-track sizing has no clean way to say "size this track to my sibling,
    then let me scroll" — an unbounded overflow:auto list still contributes
@@ -123,7 +121,7 @@ button.q{background:none;border:none;color:var(--act);padding:4px 6px}
    (syncCashHeights(), called after every render()) measures it and caps
    #cashflow's max-height to match, leaving a default cap here only as a
    pre-JS/no-JS fallback. */
-.cashsplit{display:grid;grid-template-columns:1.1fr auto 1fr;gap:22px;margin-top:18px}
+.cashsplit{display:grid;grid-template-columns:1.1fr auto 1fr;gap:22px}
 .cashleft{display:flex;flex-direction:column;align-self:start}
 .cashdivider{width:1px;background:rgba(255,255,255,.1)}
 .cashright{display:flex;flex-direction:column;min-height:0}
@@ -225,11 +223,11 @@ dialog.glassdialog .row{justify-content:flex-end;margin-top:4px}
   </section>
 
   <section class="cashbg">
+    <h2>Cash in</h2>
+    <p class="sub">What you have and what comes in. Reserve and Salary 1 are always on;
+      add another income or a one-time top-up — each can start (and optionally end)
+      partway through the horizon instead of running the whole way.</p>
     <div class="glass cashcard">
-      <h2>Cash in</h2>
-      <p class="sub">What you have and what comes in. Reserve and Salary 1 are always on;
-        add another income or a one-time top-up — each can start (and optionally end)
-        partway through the horizon instead of running the whole way.</p>
       <div class="cashsplit">
         <div class="cashleft">
           <div id="cashsources" class="srclist"></div>
