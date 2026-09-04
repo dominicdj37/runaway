@@ -75,8 +75,11 @@ loan EMIs, extras.
 - Variable budgets (groceries, utilities) take individual entries and show what
   is left. A budget still costs its full amount until you overspend it, so a
   half-logged month never reads as a cheap one.
-- Card EMIs are billed under their card, with a box for whatever went on the
-  card on top. That figure should be zero every month.
+- Card EMIs are billed under their card. Enter the actual bill you were sent
+  and it becomes that card's cost for the month; leave it blank and the card
+  is assumed to bill exactly its EMIs. *On top* is worked out for you — the
+  bill minus the EMIs — and should be zero every month. The bill covers last
+  month's spending, but it is counted in the month it leaves your account.
 - *Balance checkpoint* re-anchors the forecast to your real bank balance. Use it
   quarterly; without it small errors compound over 60 months.
 

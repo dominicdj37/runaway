@@ -179,7 +179,7 @@ button.q{background:none;border:none;color:var(--act);padding:4px 6px}
 .spendblock:last-child{border-bottom:0;padding-bottom:0}
 .blockhead{display:flex;justify-content:baseline;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}
 .blockhead h4{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--dim)}
-.blocknote{font-size:11.5px;color:var(--faint);margin-left:auto;text-align:right}
+.blocknote{font-size:11.5px;color:var(--faint);margin-left:auto;text-align:right;max-width:46ch}
 .blocknote b{font-weight:600}
 .blockempty{font-size:12.5px;color:var(--faint);padding:4px 0}
 .spendrow{display:grid;grid-template-columns:1fr 110px 132px;gap:12px;align-items:center;padding:4px 0}
@@ -466,6 +466,25 @@ function normalize(rawSettings){
   D.debts.forEach(d=>{ if(d.card===undefined) d.card=cardLabel(d.n); });
   migrateSpouseIncome(rawSettings);
   migrateLogOneoffs();
+  migrateCardTops();
+}
+
+// The card field used to hold spend *on top of* the EMIs; it now holds the
+// whole bill. Convert anything written under the old meaning by adding back
+// that month's EMIs, so the month still costs exactly what it did.
+function migrateCardTops(){
+  Object.entries(D.log||{}).forEach(([key,l])=>{
+    const sp=l.spend; if(!sp||!sp.cards) return;
+    const i=monthIndex(D.settings.start,key);
+    sp.bills=sp.bills||{};
+    Object.entries(sp.cards).forEach(([label,top])=>{
+      if(sp.bills[label]!=null) return;
+      const emi=D.debts.reduce((a,d)=>a+((!d.x && d.card===label && i<d.m)
+        ? numOr(sp.emis&&sp.emis[d.id],d.emi) : 0),0);
+      sp.bills[label]=emi+(+top||0);
+    });
+    delete sp.cards;
+  });
 }
 function cardLabel(n){
   const m=/^(.*?)\b(?:CC|Credit\s*Card)\b/i.exec(String(n||''));
@@ -503,7 +522,7 @@ const saved  = d => (d.emi*d.m - d.out) - (payoff(d)-d.out);
 /* ── one month's spending ──
    A month record (D.log[key].spend) holds only the differences from the
    plan: per-commitment amount overrides, the individual entries logged
-   against each variable budget, spend on top of each card's EMI bill, and
+   against each variable budget, the actual bill charged on each card, and
    one-off extras. Anything absent falls back to the budgeted figure, so a
    month nobody has touched costs exactly what it did before this section
    existed. project() and the Monthly spends UI both read from here — there
@@ -547,7 +566,16 @@ function monthSpend(i){
       loans.push({d,emi:numOr(sp.emis&&sp.emis[d.id],d.emi),ov:hasOv(sp.emis,d.id)});
     }
   });
-  cards.forEach(c=>{ c.top=+((sp.cards||{})[c.label])||0; c.bill=c.emi+c.top; });
+  // The bill you enter is the whole bill, not the part above the EMIs — it
+  // is what actually gets charged, so it is what the month costs. Left blank,
+  // the card is assumed to bill exactly its EMIs. Spend on top is then a
+  // derived number: bill − EMIs, the figure worth keeping at zero.
+  cards.forEach(c=>{
+    const raw=(sp.bills||{})[c.label];
+    c.actual = (raw===''||raw==null) ? null : +raw;
+    c.bill = c.actual==null ? c.emi : c.actual;
+    c.top = c.bill - c.emi;
+  });
 
   const extras=(sp.extras||[]);
   const fixedTotal=fixed.reduce((a,f)=>a+f.amt,0);
@@ -571,7 +599,7 @@ function monthSpend(i){
 function hasSpend(key){
   const lg=D.log[key]; if(!lg) return false;
   const sp=lg.spend||{}, any=o=>o&&Object.keys(o).length>0;
-  return !!(any(sp.fixed)||any(sp.caps)||any(sp.emis)||any(sp.cards)
+  return !!(any(sp.fixed)||any(sp.caps)||any(sp.emis)||any(sp.bills)
     ||(sp.items&&Object.values(sp.items).some(a=>a&&a.length))
     ||(sp.extras&&sp.extras.length)||lg.note
     ||(lg.checkpoint!==''&&lg.checkpoint!=null)||(lg.actual!==''&&lg.actual!=null));
@@ -877,10 +905,12 @@ function renderSpend(){
   });
   h+=`</div>`;
 
-  /* card spends — the EMI bill, plus whatever went on the card on top */
+  /* card spends — the bill that actually gets charged, EMIs and all */
   h+=`<div class="spendblock"><div class="blockhead"><h4>Card spends</h4>
-    <span class="blocknote">On top <b class="num ${m.topTotal?'neg':'pos'}" data-calc="toptotal">${rs(m.topTotal)}</b>
-      · Bills <b class="num" data-calc="cardtotal">${rs(m.cardTotal)}</b><br>Aim to keep on top at zero.</span></div>`;
+    <span class="blocknote">Billed <b class="num" data-calc="cardtotal">${rs(m.cardTotal)}</b>
+      · On top <b class="num ${Math.round(m.topTotal)?'neg':'pos'}" data-calc="toptotal">${rs(m.topTotal)}</b>
+      <br>Enter the bill you were sent. It covers last month's spending, but it
+      leaves your account this month. On top is the bill minus the EMIs — aim to keep it at zero.</span></div>`;
   if(!m.cards.length) h+=`<div class="blockempty">No card EMIs. Tag a debt with a card name in the Debts table to bill it here.</div>`;
   m.cards.forEach(c=>{
     const detail=c.emis.length ? c.emis.map(e=>esc(e.d.n)+' '+rs(e.emi)).join(' · ') : 'No EMI running this month';
@@ -888,9 +918,9 @@ function renderSpend(){
       <div><div class="spendname">${esc(c.label)}</div><div class="spendmeta">${detail}</div></div>
       <div class="cardnums">
         <div><i>EMIs</i><b class="num">${rs(c.emi)}</b></div>
-        <div><i>Spend on top</i><input data-sp="card" data-card="${esc(c.label)}" type="number"
-          placeholder="0" value="${c.top||''}"></div>
-        <div><i>Bill</i><b class="num" data-calc="bill:${c.label}">${rs(c.bill)}</b></div>
+        <div><i>Actual bill</i><input data-sp="card" data-card="${esc(c.label)}" type="number"
+          placeholder="${Math.round(c.emi)}" value="${c.actual==null?'':c.actual}"></div>
+        <div><i>On top</i><b class="num ${Math.round(c.top)?'neg':'pos'}" data-calc="top:${c.label}">${rs(c.top)}</b></div>
       </div></div>`;
   });
   h+=`</div>`;
@@ -940,14 +970,14 @@ function spendCalc(){
     inc:[rs(r.inc),''], out:[rs(m.out),''],
     net:[rs(r.net),r.net<0?'neg':'pos'], bal:[rs(r.bal),r.bal<0?'neg':''],
     fixedtotal:[rs(m.fixedTotal),''], vartotal:[rs(m.varTotal),''],
-    toptotal:[rs(m.topTotal),m.topTotal?'neg':'pos'], cardtotal:[rs(m.cardTotal),''],
+    toptotal:[rs(m.topTotal),Math.round(m.topTotal)?'neg':'pos'], cardtotal:[rs(m.cardTotal),''],
     loantotal:[rs(m.loanTotal),''], extratotal:[rs(m.extraTotal),'']
   };
   m.vars.forEach(v=>{
     map['spent:'+v.h.id]=[rs(v.spent),''];
     map['left:'+v.h.id]=[rs(v.left),v.left<0?'neg':'pos'];
   });
-  m.cards.forEach(c=>{ map['bill:'+c.label]=[rs(c.bill),'']; });
+  m.cards.forEach(c=>{ map['top:'+c.label]=[rs(c.top),Math.round(c.top)?'neg':'pos']; });
   return {m,map};
 }
 function updateSpendNumbers(){
@@ -987,8 +1017,10 @@ function setSpend(el){
     // an emptied field means "back to the planned amount", not zero
     if(raw==='') delete sp[bag][el.dataset.id]; else sp[bag][el.dataset.id]=+raw;
   } else if(t==='card'){
-    sp.cards=sp.cards||{};
-    if(raw===''||+raw===0) delete sp.cards[el.dataset.card]; else sp.cards[el.dataset.card]=+raw;
+    sp.bills=sp.bills||{};
+    // a typed 0 means "no bill this month" and is real data; only an emptied
+    // field falls back to assuming the card bills exactly its EMIs
+    if(raw==='') delete sp.bills[el.dataset.card]; else sp.bills[el.dataset.card]=+raw;
   } else if(t==='item'){
     const it=((sp.items||{})[el.dataset.id]||[])[+el.dataset.x]; if(!it) return;
     it[el.dataset.k]= el.dataset.k==='amt' ? (+raw||0) : raw;

@@ -73,7 +73,8 @@ emi     = Σ debts where !foreclosed && i < months   (override ?? emi)
 fixed   = Σ commitments where !variable && i < months   (override ?? amt)
 varUsed = Σ commitments where variable && i < months: max(spent, cap)
           (or log[month].actual, if legacy data still sets it)
-cardTop = Σ per-card spend logged on top of that card's EMI bill
+cardBill= Σ cards: actual bill entered ?? that card's EMIs
+cardTop = cardBill − card EMIs      // derived, the figure to keep at zero
 extras  = Σ that month's extra spends
 outgo   = emi + fixed + varUsed + cardTop + extras
 cashIn  = Σ cash where (type=='oneoff' && i==monthIndex(from))
@@ -146,7 +147,7 @@ spends — plus a balance checkpoint and note at the foot.
 A month record lives at `D.log[key].spend` and stores only the *differences*
 from the plan: `fixed{rowId:amt}` and `caps{rowId:amt}` (per-month amount
 overrides), `items{rowId:[{n,amt}]}` (the individual spends logged against a
-variable budget), `emis{rowId:amt}`, `cards{cardLabel:onTop}` and
+variable budget), `emis{rowId:amt}`, `bills{cardLabel:actualBill}` and
 `extras[{n,amt}]`. Anything absent falls back to the budget. Overrides apply
 to that month only — the `.ovr` tag shows the planned figure and resets on
 click.
@@ -159,11 +160,21 @@ Three rules that carry meaning:
   card's name (`''` = loan), classified once from the debt name by
   `cardLabel()` (`"HSBC CC — Amazon Pay"` → `HSBC`); the Card column in the
   Debts table is the escape hatch when that guess is wrong. A card keeps its
-  row after its EMIs finish — you can still spend on it. **Spend on top
-  should be zero every month**; the block says so and colours it red when it
-  isn't.
+  row after its EMIs finish — you can still spend on it.
+- What you enter per card is the **actual bill**, stored in `spend.bills`.
+  That is the whole charge, not the part above the EMIs, because that is what
+  leaves the account — so it *replaces* the card's EMIs as the month's cost
+  rather than adding to them. Blank means "assume it bills exactly its EMIs"
+  (the placeholder shows that figure); a typed `0` is real data meaning "no
+  bill", so only an emptied field falls back. **Spend on top is derived**,
+  `bill − EMIs`, and **should be zero every month** — the block says so and
+  colours it red when it isn't. It is coloured off the *rounded* figure, so a
+  displayed ₹0 is never painted red by a stray 31 paise. The bill covers last
+  month's spending; it is deliberately counted in the month it is paid.
 - The old "What actually happened" table is gone. Its `oneoff` column
-  migrates into `extras` (`migrateLogOneoffs()`), `checkpoint` and `note`
+  migrates into `extras` (`migrateLogOneoffs()`), the card field's earlier
+  spend-on-top meaning converts to a whole bill by adding that month's EMIs
+  back (`migrateCardTops()`), `checkpoint` and `note`
   moved into the card's foot, `extraIncome` is now a one-time Cash In entry,
   and a legacy `actual` still overrides that month's variable budgets until
   the banner's button clears it — money already entered is never dropped.
