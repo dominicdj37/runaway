@@ -70,8 +70,8 @@ For each month `i` of the horizon, `monthSpend(i)` produces the outgo and
 
 ```
 emi     = Σ debts where !foreclosed && i < months   (override ?? emi)
-fixed   = Σ commitments where !variable && i < months   (override ?? amt)
-varUsed = Σ commitments where variable && i < months: max(spent, cap)
+fixed   = Σ commitments where !variable && from <= i < months  (override ?? amt)
+varUsed = Σ commitments where variable && from <= i < months: max(spent, cap)
           (or log[month].actual, if legacy data still sets it)
 cardBill= Σ cards: actual bill entered ?? that card's EMIs
 cardTop = cardBill − card EMIs      // derived, the figure to keep at zero
@@ -184,6 +184,23 @@ stable `id` on every debt and commitment before anything else runs; index
 positions shift the moment a row is deleted and would silently repoint a
 month's figures at a different row. `normalize()` is called from `load()`
 and from import, and owns all four migrations.
+
+**Commitments can start partway through the horizon.** A house row's optional
+`from` (a `YYYY-MM` key) is the first month it applies; `m` keeps its original
+meaning — the horizon-relative month it *stops*, not its length — so a row with
+no `from` runs from the start exactly as it always did, and no existing data
+moves. `houseFrom()` resolves it, clamping a date earlier than the horizon to
+month 0 rather than hiding the row.
+
+Adding a commitment goes through `#housedialog` (name, amount, fixed or
+variable, start month, months to run, note), which writes `from` and computes
+`m = fromIdx + months`. Both entry points use it — the button in the Monthly
+spends Commitments block and the one under the Monthly commitments table — so
+there is one code path and it respects the horizon rather than hardcoding 60.
+Opened from a month view it defaults to starting in the month being viewed;
+if the chosen start is later, the view jumps there so the new row isn't added
+into a month that cannot show it. The table carries a **From** column so the
+field is visible and editable, never hidden state.
 
 The seed's `Card spend on top` commitment is superseded by the per-card
 entries — `deadCardTop()` drops it from both the UI and the arithmetic, but

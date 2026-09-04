@@ -64,8 +64,12 @@ original owner can invite or cancel a pending invite.
 **Debts** — tick *Clear* to model foreclosing. EMIs stop, the payoff comes off
 the reserve. *Net saved* is interest avoided minus the foreclosure charge.
 
-**Monthly commitments** — everything that isn't a loan. Mark a row *variable* if
-monthly actuals should override it.
+**Monthly commitments** — everything that isn't a loan. Mark a row *variable* to
+give it a budget you log individual spends against. A commitment can start
+partway through the horizon: leave *From* blank to run from the start, or set it
+to the month it begins. *Until month* is the horizon month it stops, counted
+from the start. Add one from either this table or the Commitments block in
+Monthly spends — both open the same dialog.
 
 **Monthly spends** — pick a month and work down it: commitments, card bills,
 loan EMIs, extras.

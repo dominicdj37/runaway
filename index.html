@@ -389,6 +389,31 @@ dialog.glassdialog .row{justify-content:flex-end;margin-top:4px}
   </form>
 </dialog>
 
+<dialog id="housedialog" class="glassdialog">
+  <form id="houseform">
+    <h3>Add a commitment</h3>
+    <p class="sub" style="margin-top:2px">A recurring obligation, not a one-off — those belong in
+      Extra spends. Variable ones get a budget you log individual spends against.</p>
+    <div class="fields">
+      <div><label for="hd_label">Commitment</label><input id="hd_label" required></div>
+      <div><label for="hd_amt" id="hd_amtlabel">Amount</label><input id="hd_amt" type="number" required></div>
+      <div><label for="hd_type">Type</label>
+        <select id="hd_type">
+          <option value="fixed">Fixed</option>
+          <option value="variable">Variable</option>
+        </select>
+      </div>
+      <div><label for="hd_from">Starts</label><input id="hd_from" type="month"></div>
+      <div><label for="hd_months">Months to run</label><input id="hd_months" type="number" min="1"></div>
+      <div><label for="hd_note">Note (optional)</label><input id="hd_note"></div>
+    </div>
+    <div class="row">
+      <button type="button" id="hd_cancel">Cancel</button>
+      <button type="submit" class="go">Add</button>
+    </div>
+  </form>
+</dialog>
+
 <div class="saving" id="saving">Saved</div>
 
 <script type="module">
@@ -533,13 +558,17 @@ const hasOv = (bag,id) => !!bag && bag[id]!=='' && bag[id]!=null;
 // the Monthly spends section. Drop it from both the UI and the arithmetic
 // only while it is ₹0, so a real figure is never silently discarded.
 const deadCardTop = h => /card spend/i.test(h.n||'') && !+h.amt;
+// A commitment may start partway through the horizon. `m` keeps its original
+// meaning — the horizon-relative month it stops — so a row with no `from`
+// runs from the start exactly as it always did.
+const houseFrom = h => h.from ? Math.max(0,monthIndex(D.settings.start,h.from)) : 0;
 
 function monthSpend(i){
   const s=D.settings, key=mKey(s.start,i), lg=D.log[key]||{}, sp=lg.spend||{};
   const fixed=[], vars=[], loans=[], cards=[], byCard={};
 
   D.house.forEach(h=>{
-    if(i>=h.m || deadCardTop(h)) return;
+    if(i<houseFrom(h) || i>=h.m || deadCardTop(h)) return;
     if(h.v){
       const cap=numOr(sp.caps&&sp.caps[h.id],h.amt);
       const items=(sp.items&&sp.items[h.id])||[];
@@ -796,18 +825,21 @@ function render(){
   $('#debts').innerHTML=t;
 
   // household
-  let h=`<thead><tr><th>Commitment</th><th class="r">Amount</th><th class="r">Months</th>
+  let h=`<thead><tr><th>Commitment</th><th class="r">Amount</th><th>From</th><th class="r">Until month</th>
     <th>Variable</th><th>Note</th><th></th></tr></thead><tbody>`;
   D.house.forEach((x,i)=>{
     h+=`<tr>
       <td><input data-p="house" data-i="${i}" data-k="n" value="${esc(x.n)}" style="width:180px"></td>
       <td class="r"><input data-p="house" data-i="${i}" data-k="amt" type="number" value="${x.amt}" style="width:100px"></td>
-      <td class="r"><input data-p="house" data-i="${i}" data-k="m" type="number" value="${x.m}" style="width:58px"></td>
+      <td><input data-p="house" data-i="${i}" data-k="from" type="month" value="${x.from||''}"
+          title="Leave blank to run from the start of the horizon." style="width:132px"></td>
+      <td class="r"><input data-p="house" data-i="${i}" data-k="m" type="number" value="${x.m}"
+          title="The horizon month it stops, counted from the start — not its length." style="width:58px"></td>
       <td><input data-p="house" data-i="${i}" data-k="v" type="checkbox" ${x.v?'checked':''}></td>
       <td style="color:var(--faint);font-size:12.5px">${esc(x.note)}</td>
       <td><button class="q" data-del="house" data-i="${i}" aria-label="Remove">✕</button></td></tr>`;
   });
-  h+=`</tbody><tfoot><tr><td>Total</td><td class="r">${rs(D.house.reduce((a,x)=>a+ +x.amt,0))}</td><td colspan="4"></td></tr></tfoot>`;
+  h+=`</tbody><tfoot><tr><td>Total</td><td class="r">${rs(D.house.reduce((a,x)=>a+ +x.amt,0))}</td><td colspan="5"></td></tr></tfoot>`;
   $('#house').innerHTML=h;
 
   renderSpend();
@@ -903,7 +935,7 @@ function renderSpend(){
         <input id="aa_${v.h.id}" type="number" placeholder="Amount">
         <button data-additem="${v.h.id}">Add</button></div></div>`;
   });
-  h+=`</div>`;
+  h+=`<div class="row"><button data-addhouse="1">Add a commitment</button></div></div>`;
 
   /* card spends — the bill that actually gets charged, EMIs and all */
   h+=`<div class="spendblock"><div class="blockhead"><h4>Card spends</h4>
@@ -1120,6 +1152,46 @@ $('#cashform').addEventListener('submit',e=>{
   render(); save();
 });
 
+/* ── commitment dialog ──
+   Adds to D.house, i.e. to the plan itself — a real recurring obligation,
+   which is what separates it from an extra spend. It defaults to starting
+   in the month being viewed, so `from` matters: without it the row would
+   apply from the horizon start and quietly backdate itself. */
+const houseDialog=$('#housedialog');
+function openHouseDialog(){
+  const s=D.settings, H=Math.max(12,Math.min(120,+s.horizon||60));
+  $('#hd_label').value=''; $('#hd_amt').value='';
+  $('#hd_type').value='fixed';
+  $('#hd_from').value=mKey(s.start,spendMonth);
+  $('#hd_months').value=H-spendMonth;
+  $('#hd_note').value='';
+  updateHouseTypeUI();
+  houseDialog.showModal();
+  $('#hd_label').focus();
+}
+function updateHouseTypeUI(){
+  $('#hd_amtlabel').textContent = $('#hd_type').value==='variable' ? 'Monthly budget' : 'Amount';
+}
+$('#hd_type').addEventListener('change',updateHouseTypeUI);
+$('#hd_cancel').onclick=()=>houseDialog.close();
+$('#houseform').addEventListener('submit',e=>{
+  e.preventDefault();
+  const s=D.settings, H=Math.max(12,Math.min(120,+s.horizon||60));
+  const from=$('#hd_from').value||mKey(s.start,spendMonth);
+  const fromIdx=Math.max(0,monthIndex(s.start,from));
+  const run=Math.max(1,+$('#hd_months').value||1);
+  D.house.push({
+    id:newId(), n:$('#hd_label').value.trim()||'Commitment',
+    amt:+$('#hd_amt').value||0, v:$('#hd_type').value==='variable',
+    from, m:fromIdx+run, note:$('#hd_note').value.trim()
+  });
+  houseDialog.close();
+  // jump to the month it starts, so it isn't added into a view that can't
+  // show it yet
+  if(fromIdx>spendMonth && fromIdx<H) spendMonth=fromIdx;
+  render(); save(); flash('Commitment added');
+});
+
 /* ── strip tooltip ──
    #strip's innerHTML is rebuilt on every renderLive() call, but #strip
    itself never is — so these listeners are attached once, delegated onto
@@ -1206,6 +1278,8 @@ document.addEventListener('click',e=>{
   const es=e.target.closest('[data-editsrc]');
   if(es){ openCashDialog(es.dataset.editsrc, es.dataset.i!=null ? +es.dataset.i : null); return; }
 
+  const ah=e.target.closest('[data-addhouse]');
+  if(ah){ openHouseDialog(); return; }
   const tab=e.target.closest('[data-mi]');
   if(tab){ spendMonth=+tab.dataset.mi; renderSpend(); return; }
   const ai=e.target.closest('[data-additem]');
@@ -1250,7 +1324,7 @@ $('#spendcard').addEventListener('keydown',e=>{
 });
 $('#addcash').onclick=()=>openCashDialog('add');
 $('#adddebt').onclick=()=>{ D.debts.push({id:newId(),n:'New debt',who:'Daniel',card:'',emi:0,out:0,m:12,rate:null,fc:3,x:false,note:''}); render(); save(); };
-$('#addhouse').onclick=()=>{ D.house.push({id:newId(),n:'New commitment',amt:0,m:60,v:false,note:''}); render(); save(); };
+$('#addhouse').onclick=openHouseDialog;   // one code path, and it respects the horizon
 $('#wipe').onclick=()=>{ if(confirm('Clear all cash sources, debts, commitments and monthly spends?')){ D=EMPTY(); spendMonth=0; render(); save(); } };
 $('#import').onclick=()=>$('#file').click();
 $('#file').onchange=e=>{
