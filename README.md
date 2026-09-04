@@ -67,9 +67,16 @@ the reserve. *Net saved* is interest avoided minus the foreclosure charge.
 **Monthly commitments** — everything that isn't a loan. Mark a row *variable* if
 monthly actuals should override it.
 
-**What actually happened** — log real spending as each month closes.
+**Monthly spends** — pick a month and work down it: commitments, card bills,
+loan EMIs, extras.
 
-- *Actual variable spend* replaces the budgeted variable lines for that month.
+- Every amount starts at what you planned. Changing one here changes that month
+  only, not the commitment behind it.
+- Variable budgets (groceries, utilities) take individual entries and show what
+  is left. A budget still costs its full amount until you overspend it, so a
+  half-logged month never reads as a cheap one.
+- Card EMIs are billed under their card, with a box for whatever went on the
+  card on top. That figure should be zero every month.
 - *Balance checkpoint* re-anchors the forecast to your real bank balance. Use it
   quarterly; without it small errors compound over 60 months.
 

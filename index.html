@@ -158,6 +158,69 @@ button.q{background:none;border:none;color:var(--act);padding:4px 6px}
   .mflowlist{max-height:320px}
 }
 
+/* monthly spends */
+.monthtabs{display:flex;gap:6px;overflow-x:auto;padding:2px 0 12px;scrollbar-width:thin}
+.mtab{flex:none;position:relative;padding:7px 13px;font-size:12.5px;border-radius:999px;
+  background:var(--surface);border:1px solid var(--line);color:var(--dim)}
+.mtab.now{border-color:var(--act)}
+.mtab.on{background:var(--act);border-color:var(--act);color:#0F1419;font-weight:600}
+.mtab i{position:absolute;top:5px;right:6px;width:5px;height:5px;border-radius:50%;background:var(--acc2)}
+.mtab.on i{background:#0F1419}
+.spendcard{padding:22px 24px}
+.spendhead{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;
+  padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.spendmonth{font-size:20px;font-weight:600;letter-spacing:-.02em}
+.spendwhen{color:var(--faint);font-size:12.5px}
+.spendtot{display:flex;gap:24px;flex-wrap:wrap}
+.spendtot>div{text-align:right}
+.spendtot i{display:block;font-style:normal;color:var(--dim);font-size:11.5px;margin-bottom:1px}
+.spendtot b{font-size:16.5px;font-weight:600}
+.spendblock{padding:18px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.spendblock:last-child{border-bottom:0;padding-bottom:0}
+.blockhead{display:flex;justify-content:baseline;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.blockhead h4{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--dim)}
+.blocknote{font-size:11.5px;color:var(--faint);margin-left:auto;text-align:right}
+.blocknote b{font-weight:600}
+.blockempty{font-size:12.5px;color:var(--faint);padding:4px 0}
+.spendrow{display:grid;grid-template-columns:1fr 110px 132px;gap:12px;align-items:center;padding:4px 0}
+.spendrow input{width:100%}
+.spendname{font-size:13.5px}
+.spendmeta{font-size:11.5px;color:var(--faint);margin-top:1px}
+.ovr{font-size:11.5px;color:var(--warn);cursor:pointer;border-bottom:1px dashed;white-space:nowrap}
+.varbox{border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(15,20,25,.4);
+  padding:12px 14px;margin-top:10px}
+.varhead{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.varnums{display:flex;align-items:center;gap:14px;font-size:12px;color:var(--dim)}
+.varnums input{width:96px}
+.varnums b{color:var(--text);font-weight:600}
+.varbar{height:6px;border-radius:4px;background:var(--raised);overflow:hidden;margin:10px 0 2px}
+.varbar span{display:block;height:100%;background:var(--safe);transition:width .2s}
+.varbar span.warn{background:var(--warn)} .varbar span.over{background:var(--danger)}
+.itemlist{display:flex;flex-direction:column;gap:5px;margin-top:9px}
+.item{display:grid;grid-template-columns:1fr 104px 30px;gap:8px;align-items:center}
+.item input{font-size:12.5px;padding:5px 7px}
+.addrow{display:grid;grid-template-columns:1fr 104px auto;gap:8px;align-items:center;margin-top:9px}
+.addrow input{font-size:12.5px;padding:5px 7px}
+.addrow button{padding:6px 12px;font-size:12.5px}
+.cardrow{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;
+  padding:9px 0;border-top:1px solid rgba(255,255,255,.06)}
+.cardrow:first-of-type{border-top:0}
+.cardnums{display:flex;align-items:flex-end;gap:18px}
+.cardnums>div{text-align:right}
+.cardnums i{display:block;font-style:normal;color:var(--dim);font-size:11px;margin-bottom:2px}
+.cardnums b{font-size:14px;font-weight:600}
+.cardnums input{width:96px;text-align:right}
+.spendfoot{display:grid;grid-template-columns:170px 1fr;gap:14px;align-items:end;padding-top:18px}
+.legacy{background:rgba(224,160,60,.1);border-left:2px solid var(--warn);padding:9px 12px;
+  border-radius:0 4px 4px 0;font-size:12.5px;color:var(--dim);margin-bottom:12px}
+@media (max-width:760px){
+  .spendcard{padding:18px}
+  .spendrow{grid-template-columns:1fr 96px;row-gap:4px}
+  .spendrow .spendnote{grid-column:1/-1}
+  .spendfoot{grid-template-columns:1fr}
+  .cardrow{align-items:flex-start}
+}
+
 /* dialog */
 dialog.glassdialog{
   background:rgba(23,30,38,.72); backdrop-filter:blur(22px) saturate(160%);
@@ -250,6 +313,15 @@ dialog.glassdialog .row{justify-content:flex-end;margin-top:4px}
   </section>
 
   <section>
+    <h2>Monthly spends</h2>
+    <p class="sub">Pick a month and work down it. Every amount starts at what you
+      planned; changing one here changes that month only, not the commitment
+      itself. Variable budgets take individual entries and show what is left.</p>
+    <div class="monthtabs" id="monthtabs"></div>
+    <div class="glass spendcard" id="spendcard"></div>
+  </section>
+
+  <section>
     <h2>Debts</h2>
     <p class="sub">Tick <b>Clear</b> to model foreclosing a debt: its EMIs stop and the payoff comes off your reserve. Net saved is the interest you avoid minus the foreclosure charge.</p>
     <div class="scroll"><table id="debts"></table></div>
@@ -261,16 +333,6 @@ dialog.glassdialog .row{justify-content:flex-end;margin-top:4px}
     <p class="sub">Everything that isn't a loan. Items marked variable are the ones your monthly actuals will override.</p>
     <div class="scroll"><table id="house"></table></div>
     <div class="row"><button id="addhouse">Add a commitment</button></div>
-  </section>
-
-  <section>
-    <h2>What actually happened</h2>
-    <p class="sub">Enter real spending as each month closes. Actual variable spend replaces the budgeted variable lines for that month. A balance checkpoint re-anchors the whole forecast to your real bank balance, so three years of small errors don't compound.</p>
-    <div class="scroll"><table id="log"></table></div>
-    <div class="row">
-      <select id="logmonth" style="width:auto;min-width:140px"></select>
-      <button id="addlog">Log this month</button>
-    </div>
   </section>
 
   <section>
@@ -376,6 +438,40 @@ function migrateSpouseIncome(rawSettings){
   }
 }
 
+// The old log's "one-offs" column is the Extra spends list now. Move any
+// real figure across rather than dropping it, and clear the old field in
+// the same pass so it can never be counted twice.
+function migrateLogOneoffs(){
+  Object.values(D.log||{}).forEach(l=>{
+    const v=+l.oneoff||0; if(!v) return;
+    const sp=l.spend=l.spend||{}; sp.extras=sp.extras||[];
+    if(!sp.extras.some(x=>x.migratedOneoff)) sp.extras.push({n:'One-off (logged)',amt:v,migratedOneoff:true});
+    l.oneoff='';
+  });
+}
+
+// Month records key their overrides by row id, so ids have to exist and be
+// unique before anything else runs — index positions shift the moment a row
+// is deleted and would silently repoint a month's figures at another row.
+const newId = () => 'i'+Math.random().toString(36).slice(2,9);
+function normalize(rawSettings){
+  const seen=new Set();
+  [D.debts,D.house].forEach(arr=>arr.forEach(r=>{
+    if(!r.id||seen.has(r.id)) r.id=newId();
+    seen.add(r.id);
+  }));
+  // A card EMI belongs to the card's bill, not the loans list. Classify once
+  // from the name ("HSBC CC — Amazon Pay" → HSBC); '' means loan, and the
+  // Card column in the debts table is the escape hatch when this is wrong.
+  D.debts.forEach(d=>{ if(d.card===undefined) d.card=cardLabel(d.n); });
+  migrateSpouseIncome(rawSettings);
+  migrateLogOneoffs();
+}
+function cardLabel(n){
+  const m=/^(.*?)\b(?:CC|Credit\s*Card)\b/i.exec(String(n||''));
+  return m ? (m[1].trim()||'Card') : '';
+}
+
 let D = EMPTY(), uid=null, myEmail=null, accountId=null, offline=false, timer=null;
 let lastR=null; // most recent project() rows, for the strip's hover tooltip
 let ACC = { owner:null, members:[], memberInfo:[], invitedEmails:[] };
@@ -404,19 +500,90 @@ function monthIndex(start,key){
 const payoff = d => d.out*(1+(d.fc||0)/100*1.18);
 const saved  = d => (d.emi*d.m - d.out) - (payoff(d)-d.out);
 
+/* ── one month's spending ──
+   A month record (D.log[key].spend) holds only the differences from the
+   plan: per-commitment amount overrides, the individual entries logged
+   against each variable budget, spend on top of each card's EMI bill, and
+   one-off extras. Anything absent falls back to the budgeted figure, so a
+   month nobody has touched costs exactly what it did before this section
+   existed. project() and the Monthly spends UI both read from here — there
+   is one arithmetic, not two. */
+const numOr = (v,base) => (v===''||v==null||isNaN(+v)) ? +base||0 : +v;
+const hasOv = (bag,id) => !!bag && bag[id]!=='' && bag[id]!=null;
+// The "Card spend on top" commitment is replaced by the per-card entries in
+// the Monthly spends section. Drop it from both the UI and the arithmetic
+// only while it is ₹0, so a real figure is never silently discarded.
+const deadCardTop = h => /card spend/i.test(h.n||'') && !+h.amt;
+
+function monthSpend(i){
+  const s=D.settings, key=mKey(s.start,i), lg=D.log[key]||{}, sp=lg.spend||{};
+  const fixed=[], vars=[], loans=[], cards=[], byCard={};
+
+  D.house.forEach(h=>{
+    if(i>=h.m || deadCardTop(h)) return;
+    if(h.v){
+      const cap=numOr(sp.caps&&sp.caps[h.id],h.amt);
+      const items=(sp.items&&sp.items[h.id])||[];
+      const spent=items.reduce((a,x)=>a+(+x.amt||0),0);
+      // the budget stands until it is overspent: a half-logged month must
+      // not read as a cheap month
+      vars.push({h,cap,items,spent,left:cap-spent,used:Math.max(spent,cap),ov:hasOv(sp.caps,h.id)});
+    } else {
+      fixed.push({h,amt:numOr(sp.fixed&&sp.fixed[h.id],h.amt),ov:hasOv(sp.fixed,h.id)});
+    }
+  });
+
+  D.debts.forEach(d=>{
+    const live = !d.x && i<d.m;
+    if(d.card){
+      // the card exists even in months its EMIs have finished — you can
+      // still spend on it, so the group is created either way
+      let g=byCard[d.card];
+      if(!g){ g=byCard[d.card]={label:d.card,emis:[],emi:0,top:0,bill:0}; cards.push(g); }
+      if(!live) return;
+      const emi=numOr(sp.emis&&sp.emis[d.id],d.emi);
+      g.emis.push({d,emi,ov:hasOv(sp.emis,d.id)}); g.emi+=emi;
+    } else if(live){
+      loans.push({d,emi:numOr(sp.emis&&sp.emis[d.id],d.emi),ov:hasOv(sp.emis,d.id)});
+    }
+  });
+  cards.forEach(c=>{ c.top=+((sp.cards||{})[c.label])||0; c.bill=c.emi+c.top; });
+
+  const extras=(sp.extras||[]);
+  const fixedTotal=fixed.reduce((a,f)=>a+f.amt,0);
+  const varPlan=vars.reduce((a,v)=>a+v.used,0);
+  // data from the old "What actually happened" table still wins for its
+  // month until it is cleared — see the banner in renderSpend()
+  const legacyActual=(lg.actual===''||lg.actual==null)?null:+lg.actual;
+  const varTotal=legacyActual==null?varPlan:legacyActual;
+  const loanTotal=loans.reduce((a,l)=>a+l.emi,0);
+  const cardEmi=cards.reduce((a,c)=>a+c.emi,0);
+  const topTotal=cards.reduce((a,c)=>a+c.top,0);
+  const extraTotal=extras.reduce((a,x)=>a+(+x.amt||0),0)+(+lg.oneoff||0);
+
+  return {i,key,lg,sp,fixed,vars,loans,cards,extras,legacyActual,
+          fixedTotal,varPlan,varTotal,varSpent:vars.reduce((a,v)=>a+v.spent,0),
+          loanTotal,cardEmi,emiTotal:loanTotal+cardEmi,
+          cardTotal:cards.reduce((a,c)=>a+c.bill,0),topTotal,extraTotal,
+          out:loanTotal+cardEmi+fixedTotal+varTotal+topTotal+extraTotal};
+}
+
+function hasSpend(key){
+  const lg=D.log[key]; if(!lg) return false;
+  const sp=lg.spend||{}, any=o=>o&&Object.keys(o).length>0;
+  return !!(any(sp.fixed)||any(sp.caps)||any(sp.emis)||any(sp.cards)
+    ||(sp.items&&Object.values(sp.items).some(a=>a&&a.length))
+    ||(sp.extras&&sp.extras.length)||lg.note
+    ||(lg.checkpoint!==''&&lg.checkpoint!=null)||(lg.actual!==''&&lg.actual!=null));
+}
+
 /* ── projection ── */
 function project(){
   const s=D.settings, H=Math.max(12,Math.min(120,+s.horizon||60));
   let bal = +s.reserve - D.debts.filter(d=>d.x).reduce((a,d)=>a+payoff(d),0);
   const rows=[];
   for(let i=0;i<H;i++){
-    const key=mKey(s.start,i), lg=D.log[key]||{};
-    const emi = D.debts.reduce((a,d)=>a+(!d.x && i<d.m ? +d.emi:0),0);
-    const fixed = D.house.reduce((a,h)=>a+(!h.v && i<h.m ? +h.amt:0),0);
-    const varBudget = D.house.reduce((a,h)=>a+(h.v && i<h.m ? +h.amt:0),0);
-    const varUsed = (lg.actual===''||lg.actual==null) ? varBudget : +lg.actual;
-    const one = +lg.oneoff||0;
-    const out = emi+fixed+varUsed+one;
+    const m=monthSpend(i), lg=m.lg;
     const cashIn = D.cash.reduce((a,c)=>{
       const idx=monthIndex(s.start,c.from);
       if(c.type==='oneoff') return a+(i===idx ? +c.amt:0);
@@ -424,12 +591,13 @@ function project(){
       return a+(i>=idx && i<=endIdx ? +c.amt:0);
     },0);
     const salary = +s.salary||0, extraIncome = +lg.extraIncome||0;
-    const inc = salary+cashIn+extraIncome;
+    const inc = salary+cashIn+extraIncome, out = m.out;
     const open = bal;
     bal += inc-out;
     if(lg.checkpoint!=='' && lg.checkpoint!=null) bal=+lg.checkpoint;
-    rows.push({i,key,label:mLabel(s.start,i),emi,fixed,varUsed,one,out,inc,net:inc-out,bal,open,salary,cashIn,extraIncome,
-               isActual:(lg.actual!=null&&lg.actual!=='')||(lg.checkpoint!=null&&lg.checkpoint!=='')});
+    rows.push({i,key:m.key,label:mLabel(s.start,i),emi:m.emiTotal,fixed:m.fixedTotal,
+               varUsed:m.varTotal,extra:m.topTotal+m.extraTotal,out,inc,net:inc-out,bal,open,
+               salary,cashIn,extraIncome,isActual:hasSpend(m.key)});
   }
   return rows;
 }
@@ -501,12 +669,12 @@ function renderLive(){
   ].map(([l,v,c])=>`<div class="stat"><b class="${c}">${v}</b><i>${l}</i></div>`).join('');
 
   // projection
-  let p=`<thead><tr><th>Month</th><th class="r">EMIs</th><th class="r">Fixed</th><th class="r">Variable</th>
+  let p=`<thead><tr><th>Month</th><th class="r">EMIs</th><th class="r">Fixed</th><th class="r">Variable + extra</th>
     <th class="r">Outgo</th><th class="r">Income</th><th class="r">Net</th><th class="r">Reserve</th></tr></thead><tbody>`;
   R.forEach(r=>{
-    p+=`<tr><td>${r.label}${r.isActual?' <span class="tag">actual</span>':''}</td>
+    p+=`<tr><td>${r.label}${r.isActual?' <span class="tag">tracked</span>':''}</td>
       <td class="r">${rs(r.emi)}</td><td class="r">${rs(r.fixed)}</td>
-      <td class="r">${rs(r.varUsed+r.one)}</td><td class="r">${rs(r.out)}</td>
+      <td class="r">${rs(r.varUsed+r.extra)}</td><td class="r">${rs(r.out)}</td>
       <td class="r">${rs(r.inc)}</td><td class="r ${r.net<0?'neg':'pos'}">${rs(r.net)}</td>
       <td class="r ${r.bal<0?'neg':''}"><b>${rs(r.bal)}</b></td></tr>`;
   });
@@ -535,11 +703,12 @@ function renderLive(){
       <div class="mflowbreak">${brk}</div></div>`;
   }).join('');
 
+  updateSpendNumbers();
   return R;
 }
 
 function render(){
-  const R=renderLive();
+  renderLive();
 
   // cash in — sources list (reserve, salary, then each flexible cash entry),
   // each a glass card; editing happens through the dialog, not inline
@@ -567,17 +736,19 @@ function render(){
   $('#cashsources').innerHTML=cs;
 
   // debts
-  let t=`<thead><tr><th>Debt</th><th>Name</th><th class="r">EMI</th><th class="r">Owed</th>
+  let t=`<thead><tr><th>Debt</th><th>Name</th><th>Card</th><th class="r">EMI</th><th class="r">Owed</th>
     <th class="r">Left</th><th class="r">Rate</th><th class="r">Fee %</th><th class="r">Payoff</th>
     <th class="r">Net saved</th><th>Clear</th><th></th></tr></thead><tbody>`;
   if(!D.debts.length){
-    t+=`<tr><td colspan="11" style="color:var(--faint);padding:16px 11px">
+    t+=`<tr><td colspan="12" style="color:var(--faint);padding:16px 11px">
       No debts yet. Settings → Import from file, or add one below.</td></tr>`;
   }
   D.debts.forEach((d,i)=>{
     t+=`<tr class="${d.x?'gone':''}">
       <td title="${esc(d.note)}">${esc(d.n)}</td>
       <td><span class="tag">${esc(d.who)}</span></td>
+      <td><input data-p="debts" data-i="${i}" data-k="card" value="${esc(d.card)}" placeholder="loan"
+          title="Which card this EMI is billed on. Blank means it's a loan." style="width:84px"></td>
       <td class="r"><input data-p="debts" data-i="${i}" data-k="emi"  type="number" step="0.01" value="${d.emi}" style="width:92px"></td>
       <td class="r"><input data-p="debts" data-i="${i}" data-k="out"  type="number" value="${d.out}" style="width:100px"></td>
       <td class="r"><input data-p="debts" data-i="${i}" data-k="m"    type="number" value="${d.m}" style="width:58px"></td>
@@ -589,7 +760,7 @@ function render(){
       <td><button class="q" data-del="debts" data-i="${i}" aria-label="Remove">✕</button></td></tr>`;
   });
   const live=D.debts.filter(d=>!d.x), cleared=D.debts.filter(d=>d.x);
-  t+=`</tbody><tfoot><tr><td colspan="2">${live.length} active</td>
+  t+=`</tbody><tfoot><tr><td colspan="3">${live.length} active</td>
     <td class="r">${rs(live.reduce((a,d)=>a+ +d.emi,0))}</td>
     <td class="r">${rs(live.reduce((a,d)=>a+ +d.out,0))}</td>
     <td colspan="4"></td>
@@ -611,30 +782,7 @@ function render(){
   h+=`</tbody><tfoot><tr><td>Total</td><td class="r">${rs(D.house.reduce((a,x)=>a+ +x.amt,0))}</td><td colspan="4"></td></tr></tfoot>`;
   $('#house').innerHTML=h;
 
-  // log
-  const keys=Object.keys(D.log).sort();
-  let g=`<thead><tr><th>Month</th><th class="r">Actual variable spend</th><th class="r">One-offs</th>
-    <th class="r">Extra income</th><th class="r">Balance checkpoint</th><th>Note</th><th></th></tr></thead><tbody>`;
-  if(!keys.length){
-    g+=`<tr><td colspan="7" style="color:var(--faint);padding:16px 11px">
-      Nothing logged yet. Pick a month below to record what you actually spent.</td></tr>`;
-  }
-  keys.forEach(k=>{
-    const l=D.log[k], bud=D.house.filter(x=>x.v).reduce((a,x)=>a+ +x.amt,0);
-    g+=`<tr>
-      <td>${k}</td>
-      <td class="r"><input data-p="log" data-i="${k}" data-k="actual" type="number" placeholder="${bud}" value="${l.actual??''}" style="width:110px"></td>
-      <td class="r"><input data-p="log" data-i="${k}" data-k="oneoff" type="number" placeholder="0" value="${l.oneoff??''}" style="width:96px"></td>
-      <td class="r"><input data-p="log" data-i="${k}" data-k="extraIncome" type="number" placeholder="0" value="${l.extraIncome??''}" style="width:96px"></td>
-      <td class="r"><input data-p="log" data-i="${k}" data-k="checkpoint" type="number" placeholder="—" value="${l.checkpoint??''}" style="width:110px"></td>
-      <td><input data-p="log" data-i="${k}" data-k="note" value="${esc(l.note??'')}" style="width:170px"></td>
-      <td><button class="q" data-del="log" data-i="${k}" aria-label="Remove">✕</button></td></tr>`;
-  });
-  $('#log').innerHTML=g+'</tbody>';
-
-  const sel=$('#logmonth');
-  sel.innerHTML=R.map(r=>`<option value="${r.key}">${r.label}</option>`).join('');
-
+  renderSpend();
   renderMembers();
   syncCashHeights();
 }
@@ -650,6 +798,206 @@ function syncCashHeights(){
   list.style.maxHeight=Math.max(120,budget)+'px';
 }
 window.addEventListener('resize',syncCashHeights);
+
+/* ── monthly spends ──
+   renderSpend() rebuilds the whole card and is only called for structural
+   changes (a different month, a row added or removed) — never on a
+   keystroke. Typing goes through setSpend() and then
+   updateSpendNumbers(), which rewrites the derived figures in place, so
+   the field being typed in is never torn down. Same split as
+   renderLive()/render(), for the same reason. */
+let spendMonth=0;
+
+function renderSpend(){
+  const s=D.settings, H=Math.max(12,Math.min(120,+s.horizon||60));
+  if(!(spendMonth>=0 && spendMonth<H)) spendMonth=0;
+
+  const tabs=$('#monthtabs');
+  tabs.innerHTML=Array.from({length:H},(_,i)=>
+    `<button class="mtab${i===spendMonth?' on':''}${i===0?' now':''}" data-mi="${i}"
+      >${mLabel(s.start,i)}${hasSpend(mKey(s.start,i))?'<i></i>':''}</button>`).join('');
+  const on=tabs.querySelector('.mtab.on');
+  if(on) tabs.scrollLeft=Math.max(0,on.offsetLeft-tabs.clientWidth/2+on.offsetWidth/2);
+
+  const m=monthSpend(spendMonth);
+  const r=(lastR||[])[spendMonth]||{inc:0,net:-m.out,bal:0};
+  const ovr=(kind,id,base)=>`<span class="ovr${hasOv(m.sp[kind],id)?'':' hide'}"
+    data-ovr="${kind}:${id}" title="Reset to the planned amount">plan ${rs(base)}</span>`;
+
+  let h=`<div class="spendhead">
+    <div><div class="spendmonth">${mLabel(s.start,spendMonth)}</div>
+      <div class="spendwhen">${spendMonth===0?'This month':spendMonth===1?'Next month':spendMonth+' months out'}</div></div>
+    <div class="spendtot">
+      <div><i>Money in</i><b class="num" data-calc="inc">${rs(r.inc)}</b></div>
+      <div><i>Total out</i><b class="num" data-calc="out">${rs(m.out)}</b></div>
+      <div><i>Net</i><b class="num ${r.net<0?'neg':'pos'}" data-calc="net">${rs(r.net)}</b></div>
+      <div><i>Reserve after</i><b class="num ${r.bal<0?'neg':''}" data-calc="bal">${rs(r.bal)}</b></div>
+    </div></div>`;
+
+  if(m.legacyActual!=null){
+    h+=`<div class="legacy" style="margin-top:16px">A logged actual of <b>${rs(m.legacyActual)}</b>
+      from the old monthly log is overriding the variable budgets below for this month.
+      <button class="q" data-clearactual="1">Use the entries instead</button></div>`;
+  }
+
+  /* commitments — fixed lines first, then a tracker per variable budget */
+  h+=`<div class="spendblock"><div class="blockhead"><h4>Commitments</h4>
+    <span class="blocknote">Fixed <b class="num" data-calc="fixedtotal">${rs(m.fixedTotal)}</b>
+      · Variable <b class="num" data-calc="vartotal">${rs(m.varTotal)}</b></span></div>`;
+  if(!m.fixed.length && !m.vars.length) h+=`<div class="blockempty">No commitments running this month.</div>`;
+  m.fixed.forEach(f=>{
+    h+=`<div class="spendrow"><div class="spendname">${esc(f.h.n)}</div>
+      <input data-sp="fixed" data-id="${f.h.id}" type="number" value="${f.amt}">
+      <div class="spendnote">${ovr('fixed',f.h.id,f.h.amt)}</div></div>`;
+  });
+  m.vars.forEach(v=>{
+    const pct=v.cap>0?Math.min(100,v.spent/v.cap*100):(v.spent?100:0);
+    const cls=v.left<0?'over':pct>80?'warn':'';
+    h+=`<div class="varbox">
+      <div class="varhead">
+        <div><div class="spendname">${esc(v.h.n)}</div>${ovr('caps',v.h.id,v.h.amt)}</div>
+        <div class="varnums">
+          <span>allowed <input data-sp="cap" data-id="${v.h.id}" type="number" value="${v.cap}"></span>
+          <span>spent <b class="num" data-calc="spent:${v.h.id}">${rs(v.spent)}</b></span>
+          <span>left <b class="num ${v.left<0?'neg':'pos'}" data-calc="left:${v.h.id}">${rs(v.left)}</b></span>
+        </div>
+      </div>
+      <div class="varbar"><span class="${cls}" data-bar="${v.h.id}" style="width:${pct.toFixed(1)}%"></span></div>
+      <div class="itemlist">`;
+    v.items.forEach((it,ix)=>{
+      h+=`<div class="item">
+        <input data-sp="item" data-id="${v.h.id}" data-x="${ix}" data-k="n" value="${esc(it.n)}">
+        <input data-sp="item" data-id="${v.h.id}" data-x="${ix}" data-k="amt" type="number" value="${it.amt}">
+        <button class="q" data-delitem="${v.h.id}" data-x="${ix}" aria-label="Remove">✕</button></div>`;
+    });
+    h+=`</div><div class="addrow">
+        <input id="an_${v.h.id}" placeholder="What you spent it on">
+        <input id="aa_${v.h.id}" type="number" placeholder="Amount">
+        <button data-additem="${v.h.id}">Add</button></div></div>`;
+  });
+  h+=`</div>`;
+
+  /* card spends — the EMI bill, plus whatever went on the card on top */
+  h+=`<div class="spendblock"><div class="blockhead"><h4>Card spends</h4>
+    <span class="blocknote">On top <b class="num ${m.topTotal?'neg':'pos'}" data-calc="toptotal">${rs(m.topTotal)}</b>
+      · Bills <b class="num" data-calc="cardtotal">${rs(m.cardTotal)}</b><br>Aim to keep on top at zero.</span></div>`;
+  if(!m.cards.length) h+=`<div class="blockempty">No card EMIs. Tag a debt with a card name in the Debts table to bill it here.</div>`;
+  m.cards.forEach(c=>{
+    const detail=c.emis.length ? c.emis.map(e=>esc(e.d.n)+' '+rs(e.emi)).join(' · ') : 'No EMI running this month';
+    h+=`<div class="cardrow">
+      <div><div class="spendname">${esc(c.label)}</div><div class="spendmeta">${detail}</div></div>
+      <div class="cardnums">
+        <div><i>EMIs</i><b class="num">${rs(c.emi)}</b></div>
+        <div><i>Spend on top</i><input data-sp="card" data-card="${esc(c.label)}" type="number"
+          placeholder="0" value="${c.top||''}"></div>
+        <div><i>Bill</i><b class="num" data-calc="bill:${c.label}">${rs(c.bill)}</b></div>
+      </div></div>`;
+  });
+  h+=`</div>`;
+
+  /* debts — loans only; card EMIs are billed above */
+  h+=`<div class="spendblock"><div class="blockhead"><h4>Debts</h4>
+    <span class="blocknote">Loan EMIs <b class="num" data-calc="loantotal">${rs(m.loanTotal)}</b></span></div>`;
+  if(!m.loans.length) h+=`<div class="blockempty">No loan EMIs this month.</div>`;
+  m.loans.forEach(l=>{
+    h+=`<div class="spendrow">
+      <div><div class="spendname">${esc(l.d.n)}</div>
+        <div class="spendmeta">${l.d.m-spendMonth} of ${l.d.m} EMIs still to pay${l.d.who?' · '+esc(l.d.who):''}</div></div>
+      <input data-sp="emi" data-id="${l.d.id}" type="number" step="0.01" value="${l.emi}">
+      <div class="spendnote">${ovr('emis',l.d.id,l.d.emi)}</div></div>`;
+  });
+  h+=`</div>`;
+
+  /* extras — anything that wasn't planned, including last month's leftovers */
+  h+=`<div class="spendblock"><div class="blockhead"><h4>Extra spends</h4>
+    <span class="blocknote">Total <b class="num" data-calc="extratotal">${rs(m.extraTotal)}</b></span></div>`;
+  if(!m.extras.length) h+=`<div class="blockempty">Nothing extra. Add anything unplanned, or carried over from last month.</div>`;
+  m.extras.forEach((x,ix)=>{
+    h+=`<div class="item">
+      <input data-sp="extra" data-x="${ix}" data-k="n" value="${esc(x.n)}">
+      <input data-sp="extra" data-x="${ix}" data-k="amt" type="number" value="${x.amt}">
+      <button class="q" data-delextra="${ix}" aria-label="Remove">✕</button></div>`;
+  });
+  h+=`<div class="addrow"><input id="ax_n" placeholder="What it was">
+    <input id="ax_a" type="number" placeholder="Amount">
+    <button data-addextra="1">Add</button></div>`;
+
+  h+=`<div class="spendfoot">
+      <div><label for="sp_cp">Balance checkpoint</label>
+        <input id="sp_cp" data-sp="cp" type="number" placeholder="—" value="${m.lg.checkpoint??''}"></div>
+      <div><label for="sp_note">Note</label>
+        <input id="sp_note" data-sp="note" value="${esc(m.lg.note??'')}"></div>
+    </div></div>`;
+
+  $('#spendcard').innerHTML=h;
+}
+
+// Every derived figure in the card, recomputed from D and keyed the same way
+// as its data-calc attribute.
+function spendCalc(){
+  const m=monthSpend(spendMonth), r=(lastR||[])[spendMonth]||{inc:0,net:-m.out,bal:0};
+  const map={
+    inc:[rs(r.inc),''], out:[rs(m.out),''],
+    net:[rs(r.net),r.net<0?'neg':'pos'], bal:[rs(r.bal),r.bal<0?'neg':''],
+    fixedtotal:[rs(m.fixedTotal),''], vartotal:[rs(m.varTotal),''],
+    toptotal:[rs(m.topTotal),m.topTotal?'neg':'pos'], cardtotal:[rs(m.cardTotal),''],
+    loantotal:[rs(m.loanTotal),''], extratotal:[rs(m.extraTotal),'']
+  };
+  m.vars.forEach(v=>{
+    map['spent:'+v.h.id]=[rs(v.spent),''];
+    map['left:'+v.h.id]=[rs(v.left),v.left<0?'neg':'pos'];
+  });
+  m.cards.forEach(c=>{ map['bill:'+c.label]=[rs(c.bill),'']; });
+  return {m,map};
+}
+function updateSpendNumbers(){
+  const card=$('#spendcard'); if(!card||!card.firstChild) return;
+  const {m,map}=spendCalc();
+  card.querySelectorAll('[data-calc]').forEach(el=>{
+    const v=map[el.dataset.calc]; if(!v) return;
+    el.textContent=v[0];
+    el.classList.toggle('neg',v[1]==='neg'); el.classList.toggle('pos',v[1]==='pos');
+  });
+  const byId={}; m.vars.forEach(v=>byId[v.h.id]=v);
+  card.querySelectorAll('[data-bar]').forEach(el=>{
+    const v=byId[el.dataset.bar]; if(!v) return;
+    const pct=v.cap>0?Math.min(100,v.spent/v.cap*100):(v.spent?100:0);
+    el.style.width=pct.toFixed(1)+'%';
+    el.classList.toggle('over',v.left<0);
+    el.classList.toggle('warn',v.left>=0&&pct>80);
+  });
+  card.querySelectorAll('[data-ovr]').forEach(el=>{
+    const [kind,id]=el.dataset.ovr.split(':');
+    el.classList.toggle('hide',!hasOv(m.sp[kind],id));
+  });
+}
+
+function spendKey(){ return mKey(D.settings.start,spendMonth); }
+function ensureSpend(){
+  const lg=D.log[spendKey()]=D.log[spendKey()]||{};
+  return lg.spend=lg.spend||{};
+}
+function setSpend(el){
+  const t=el.dataset.sp, raw=el.value;
+  const lg=D.log[spendKey()]=D.log[spendKey()]||{};
+  const sp=lg.spend=lg.spend||{};
+  if(t==='fixed'||t==='cap'||t==='emi'){
+    const bag={fixed:'fixed',cap:'caps',emi:'emis'}[t];
+    sp[bag]=sp[bag]||{};
+    // an emptied field means "back to the planned amount", not zero
+    if(raw==='') delete sp[bag][el.dataset.id]; else sp[bag][el.dataset.id]=+raw;
+  } else if(t==='card'){
+    sp.cards=sp.cards||{};
+    if(raw===''||+raw===0) delete sp.cards[el.dataset.card]; else sp.cards[el.dataset.card]=+raw;
+  } else if(t==='item'){
+    const it=((sp.items||{})[el.dataset.id]||[])[+el.dataset.x]; if(!it) return;
+    it[el.dataset.k]= el.dataset.k==='amt' ? (+raw||0) : raw;
+  } else if(t==='extra'){
+    const x=(sp.extras||[])[+el.dataset.x]; if(!x) return;
+    x[el.dataset.k]= el.dataset.k==='amt' ? (+raw||0) : raw;
+  } else if(t==='cp'){ lg.checkpoint = raw===''?'':+raw; }
+  else if(t==='note'){ lg.note=raw; }
+}
 
 function renderMembers(){
   const box=$('#memberssection');
@@ -786,6 +1134,12 @@ $('#strip').addEventListener('click',e=>{
 /* ── edits ── */
 document.addEventListener('input',e=>{
   const el=e.target;
+  if(el.dataset.sp){
+    setSpend(el);
+    renderLive(); // recomputes the forecast and, through it, this card's figures
+    save();
+    return;
+  }
   if(el.dataset.p){
     const {p,i,k}=el.dataset;
     const val = el.type==='checkbox' ? el.checked
@@ -813,20 +1167,59 @@ document.addEventListener('click',e=>{
   const b=e.target.closest('[data-del]');
   if(b){
     const {del,i}=b.dataset;
-    if(del==='log') delete D.log[i]; else D[del].splice(+i,1);
+    D[del].splice(+i,1);
     render(); save();
     return;
   }
   const es=e.target.closest('[data-editsrc]');
   if(es){ openCashDialog(es.dataset.editsrc, es.dataset.i!=null ? +es.dataset.i : null); return; }
+
+  const tab=e.target.closest('[data-mi]');
+  if(tab){ spendMonth=+tab.dataset.mi; renderSpend(); return; }
+  const ai=e.target.closest('[data-additem]');
+  if(ai){
+    const id=ai.dataset.additem, n=$('#an_'+id).value.trim(), amt=+$('#aa_'+id).value||0;
+    if(!n && !amt) return;
+    const sp=ensureSpend(); sp.items=sp.items||{};
+    (sp.items[id]=sp.items[id]||[]).push({n:n||'Spend',amt});
+    render(); save(); return;
+  }
+  const di=e.target.closest('[data-delitem]');
+  if(di){
+    const arr=((ensureSpend().items||{})[di.dataset.delitem])||[];
+    arr.splice(+di.dataset.x,1); render(); save(); return;
+  }
+  const ax=e.target.closest('[data-addextra]');
+  if(ax){
+    const n=$('#ax_n').value.trim(), amt=+$('#ax_a').value||0;
+    if(!n && !amt) return;
+    const sp=ensureSpend(); (sp.extras=sp.extras||[]).push({n:n||'Extra',amt});
+    render(); save(); return;
+  }
+  const dx=e.target.closest('[data-delextra]');
+  if(dx){ (ensureSpend().extras||[]).splice(+dx.dataset.delextra,1); render(); save(); return; }
+  const ov=e.target.closest('[data-ovr]');
+  if(ov){
+    const [kind,id]=ov.dataset.ovr.split(':');
+    const bag=ensureSpend()[kind]; if(bag) delete bag[id];
+    render(); save(); return;
+  }
+  const ca=e.target.closest('[data-clearactual]');
+  if(ca){ const lg=D.log[spendKey()]; if(lg) lg.actual=''; render(); save(); return; }
+
   const c=e.target.closest('[data-cancelinvite]');
   if(c){ cancelInvite(c.dataset.cancelinvite); }
 });
+// Enter in an add row is the same as pressing its Add button
+$('#spendcard').addEventListener('keydown',e=>{
+  if(e.key!=='Enter') return;
+  const row=e.target.closest('.addrow'); if(!row) return;
+  e.preventDefault(); row.querySelector('button').click();
+});
 $('#addcash').onclick=()=>openCashDialog('add');
-$('#adddebt').onclick=()=>{ D.debts.push({n:'New debt',who:'Daniel',emi:0,out:0,m:12,rate:null,fc:3,x:false,note:''}); render(); save(); };
-$('#addhouse').onclick=()=>{ D.house.push({n:'New commitment',amt:0,m:60,v:false,note:''}); render(); save(); };
-$('#addlog').onclick=()=>{ const k=$('#logmonth').value; D.log[k]=D.log[k]||{actual:'',oneoff:'',extraIncome:'',checkpoint:'',note:''}; render(); save(); };
-$('#wipe').onclick=()=>{ if(confirm('Clear all cash sources, debts, commitments and logs?')){ D=EMPTY(); render(); save(); } };
+$('#adddebt').onclick=()=>{ D.debts.push({id:newId(),n:'New debt',who:'Daniel',card:'',emi:0,out:0,m:12,rate:null,fc:3,x:false,note:''}); render(); save(); };
+$('#addhouse').onclick=()=>{ D.house.push({id:newId(),n:'New commitment',amt:0,m:60,v:false,note:''}); render(); save(); };
+$('#wipe').onclick=()=>{ if(confirm('Clear all cash sources, debts, commitments and monthly spends?')){ D=EMPTY(); spendMonth=0; render(); save(); } };
 $('#import').onclick=()=>$('#file').click();
 $('#file').onchange=e=>{
   const f=e.target.files[0]; if(!f) return;
@@ -840,7 +1233,7 @@ $('#file').onchange=e=>{
           house:Array.isArray(v.house)?v.house:[],
           cash:Array.isArray(v.cash)?v.cash:[],
           log:(v.log&&typeof v.log==='object')?v.log:{} };
-      migrateSpouseIncome(v.settings);
+      normalize(v.settings);
       render(); save(); flash('Imported');
     }catch(err){ alert('Could not read that file: '+err.message); }
   };
@@ -873,7 +1266,7 @@ async function load(){
       D={settings:{...EMPTY().settings,...(v.settings||{})},
          debts:v.debts||EMPTY().debts, house:v.house||EMPTY().house,
          cash:v.cash||EMPTY().cash, log:v.log||{}};
-      migrateSpouseIncome(v.settings);
+      normalize(v.settings);
       ACC={owner:v.owner, members:v.members||[], memberInfo:v.memberInfo||[], invitedEmails:v.invitedEmails||[]};
     }
   }catch(err){ console.error(err); flash('Could not load — check Firestore rules'); }
